@@ -47,6 +47,7 @@
 #include "test/methodargs.h"
 #include "test/nativearray.h"
 #include "test/oo.h"
+#include "test/oo/abstractclass.h"
 #include "test/oo/constantsinterface.h"
 #include "test/oo/extendpdoclass.h"
 #include "test/oo/ooconstruct.h"
