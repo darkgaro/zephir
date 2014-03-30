@@ -9,6 +9,8 @@ class Assign
 {
 	protected testVar {get};
 
+	protected myArray;
+
 	public function testAssign1()
 	{
 		int a;
@@ -356,12 +358,180 @@ class Assign
 		return this->testVar;
 	}
 
+	public function testPropertyArray1()
+	{
+		let this->myArray = [];
+		let this->myArray[] = 1;
+		let this->myArray[] = 1.5;
+		let this->myArray[] = null;
+		let this->myArray[] = false;
+		let this->myArray[] = true;
+		let this->myArray[] = 'A';
+		let this->myArray[] = "hello";
+		let this->myArray[] = [];
+		return this->myArray;
+	}
+
+	public function testPropertyArray2()
+	{
+		int a = 1;
+		double b = 1.5;
+		var c = null;
+		boolean d = false;
+		char e = 'A';
+		array f = [];
+
+		let this->myArray = [];
+		let this->myArray[] = a;
+		let this->myArray[] = b;
+		let this->myArray[] = c;
+		let this->myArray[] = d;
+		let this->myArray[] = e;
+		let this->myArray[] = f;
+		return this->myArray;
+	}
+
+	public function testPropertyArray3()
+	{
+		let this->myArray = [];
+		let this->myArray[0] = 1;
+		let this->myArray[0] = 1.5;
+		let this->myArray[0] = null;
+		let this->myArray[0] = false;
+		let this->myArray[0] = true;
+		let this->myArray[0] = 'A';
+		let this->myArray[0] = [];
+		return this->myArray;
+	}
+
+	public function testPropertyArray4(index)
+	{
+		let this->myArray = [];
+		let this->myArray[index] = 1;
+		let this->myArray[index] = 1.5;
+		let this->myArray[index] = null;
+		let this->myArray[index] = false;
+		let this->myArray[index] = true;
+		let this->myArray[index] = 'A';
+		let this->myArray[index] = [];
+		return this->myArray;
+	}
+
+	public function testPropertyArray5(string index)
+	{
+		let this->myArray = [];
+		let this->myArray[index] = 1;
+		let this->myArray[index] = 1.5;
+		let this->myArray[index] = null;
+		let this->myArray[index] = false;
+		let this->myArray[index] = true;
+		let this->myArray[index] = 'A';
+		let this->myArray[index] = [];
+		return this->myArray;
+	}
+
+	public function testPropertyArray6()
+	{
+		let this->myArray = [];
+		let this->myArray[0][1] = 1;
+		let this->myArray[0][1] = 1.5;
+		let this->myArray[0][1] = null;
+		let this->myArray[0][1] = false;
+		let this->myArray[0][1] = true;
+		let this->myArray[0][1] = 'A';
+		let this->myArray[0][1] = "hello";
+		let this->myArray[0][1] = [];
+		return this->myArray;
+	}
+
+	public function testPropertyArray7()
+	{
+		let this->myArray = [];
+		let this->myArray["hello"]["hello"] = 1;
+		let this->myArray["hello"]["hello"] = 1.5;
+		let this->myArray["hello"]["hello"] = null;
+		let this->myArray["hello"]["hello"] = false;
+		let this->myArray["hello"]["hello"] = true;
+		let this->myArray["hello"]["hello"] = 'A';
+		let this->myArray["hello"]["hello"] = "hello";
+		let this->myArray["hello"]["hello"] = [];
+		return this->myArray;
+	}
+
+	public function testPropertyArray8(index)
+	{
+		let this->myArray = [];
+		let this->myArray[index][index] = 1;
+		let this->myArray[index][index] = 1.5;
+		let this->myArray[index][index] = null;
+		let this->myArray[index][index] = false;
+		let this->myArray[index][index] = true;
+		let this->myArray[index][index] = 'A';
+		let this->myArray[index][index] = "hello";
+		let this->myArray[index][index] = [];
+		return this->myArray;
+	}
+
+	public function testPropertyArray9(int index)
+	{
+		let this->myArray = [];
+		let this->myArray[index][index] = 1;
+		let this->myArray[index][index] = 1.5;
+		let this->myArray[index][index] = null;
+		let this->myArray[index][index] = false;
+		let this->myArray[index][index] = true;
+		let this->myArray[index][index] = 'A';
+		let this->myArray[index][index] = "hello";
+		let this->myArray[index][index] = [];
+		return this->myArray;
+	}
+
+	public function testPropertyArray10(string index)
+	{
+		let this->myArray = [];
+		let this->myArray[index][index] = 1;
+		let this->myArray[index][index] = 1.5;
+		let this->myArray[index][index] = null;
+		let this->myArray[index][index] = false;
+		let this->myArray[index][index] = true;
+		let this->myArray[index][index] = 'A';
+		let this->myArray[index][index] = "hello";
+		let this->myArray[index][index] = [];
+		return this->myArray;
+	}
+
+	public function testPropertyArray11(string index)
+	{
+		let this->myArray = [];
+		let this->myArray[index][index] = 1;
+		let this->myArray[index][index] = 1.5;
+		let this->myArray[index][index] = null;
+		let this->myArray[index][index] = false;
+		let this->myArray[index][index] = true;
+		let this->myArray[index][index] = 'A';
+		let this->myArray[index][index] = "hello";
+		let this->myArray[index][index] = [];
+		return this->myArray;
+	}
+
+	public function testPropertyArray12(index)
+	{
+		let this->myArray[index][index][] = 1;
+		let this->myArray[index][index][] = 1.5;
+		let this->myArray[index][index][] = null;
+		let this->myArray[index][index][] = false;
+		let this->myArray[index][index][] = true;
+		let this->myArray[index][index][] = 'A';
+		let this->myArray[index][index][] = "hello";
+		let this->myArray[index][index][] = [];
+		return this->myArray;
+	}
+
 	public function testArrayVarAssign1(var index, var value)
 	{
 		var a;
 		let a = [];
 		let a[index] = value;
-
 		return a;
 	}
 
@@ -370,7 +540,14 @@ class Assign
 		var _POST;
 		let _POST = [];
 		let _POST[index] = value;
+		return _POST;
+	}
 
+	public function testArrayProperty(var index, var value)
+	{
+		var _POST;
+		let _POST = [];
+		let _POST[index] = value;
 		return _POST;
 	}
 

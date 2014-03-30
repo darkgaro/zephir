@@ -17,24 +17,41 @@
  +--------------------------------------------------------------------------+
 */
 
-namespace Extension;
+namespace Zephir\Statements\Let;
 
-class TernaryTest extends \PHPUnit_Framework_TestCase
+use Zephir\CompilationContext;
+use Zephir\CompilerException;
+use Zephir\Variable as ZephirVariable;
+use Zephir\Detectors\ReadDetector;
+use Zephir\Expression;
+use Zephir\CompiledExpression;
+use Zephir\Compiler;
+use Zephir\Utils;
+use Zephir\GlobalConstant;
+
+/**
+ * ExportSymbol
+ *
+ * Exports symbol to a
+ */
+class ExportSymbol
 {
-    public function testTernary()
-    {
-        $t = new \Test\Ternary();
-        $this->assertEquals(101, $t->testTernary1());
-        $this->assertEquals('foo', $t->testTernary2(true));
-        $this->assertEquals('bar', $t->testTernary2(false));
-        $this->assertEquals(3, $t->testTernaryAfterLetVariable());
-    }
 
-    /*public function testComplex()
+    /**
+     * Compiles {var} = {expr}
+     *
+     * @param string $variable
+     * @param ZephirVariable $symbolVariable
+     * @param CompiledExpression $resolvedExpr
+     * @param CompilationContext $compilationContext,
+     * @param array $statement
+     */
+    public function assign($variable, ZephirVariable $symbolVariable, CompiledExpression $resolvedExpr, CompilationContext $compilationContext, $statement)
     {
-        $t = new \Test\Ternary();
-        $this->assertTrue($t->testTernaryComplex1(array(), "") === 101);
-        $this->assertTrue($t->testTernaryComplex2(array(), "") === 106);
-        $this->assertTrue($t->testTernaryComplex3("") === "boolean");
-    }*/
+        $codePrinter = $compilationContext->codePrinter;
+
+        $codePrinter->output('if (zephir_set_symbol(' . $symbolVariable->getName() . ', ' . $resolvedExpr->getCode() . ' TSRMLS_CC) == FAILURE){');
+        $codePrinter->output('  return;');
+        $codePrinter->output('}');
+    }
 }
