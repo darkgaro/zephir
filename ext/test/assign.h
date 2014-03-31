@@ -4,6 +4,7 @@ extern zend_class_entry *test_assign_ce;
 ZEPHIR_INIT_CLASS(Test_Assign);
 
 PHP_METHOD(Test_Assign, getTestVar);
+PHP_METHOD(Test_Assign, getMyArray);
 PHP_METHOD(Test_Assign, testAssign1);
 PHP_METHOD(Test_Assign, testAssign2);
 PHP_METHOD(Test_Assign, testAssign3);
@@ -40,6 +41,8 @@ PHP_METHOD(Test_Assign, testAssign33);
 PHP_METHOD(Test_Assign, testAssign34);
 PHP_METHOD(Test_Assign, testAssign35);
 PHP_METHOD(Test_Assign, testAssign36);
+PHP_METHOD(Test_Assign, testPropertyAssign1);
+PHP_METHOD(Test_Assign, testPropertyAssign2);
 PHP_METHOD(Test_Assign, testPropertyIncr1);
 PHP_METHOD(Test_Assign, testPropertyAddAssign1);
 PHP_METHOD(Test_Assign, testPropertyAddAssign2);
@@ -61,7 +64,15 @@ PHP_METHOD(Test_Assign, testPropertyArray8);
 PHP_METHOD(Test_Assign, testPropertyArray9);
 PHP_METHOD(Test_Assign, testPropertyArray10);
 PHP_METHOD(Test_Assign, testPropertyArray11);
-PHP_METHOD(Test_Assign, testPropertyArray12);
+PHP_METHOD(Test_Assign, testStaticPropertyAssign1);
+PHP_METHOD(Test_Assign, testStaticPropertyAssign2);
+PHP_METHOD(Test_Assign, testStaticPropertyArray1);
+PHP_METHOD(Test_Assign, testStaticPropertyArray2);
+PHP_METHOD(Test_Assign, testStaticPropertyArray3);
+PHP_METHOD(Test_Assign, testStaticPropertyArrayMutli1);
+PHP_METHOD(Test_Assign, testStaticPropertyArrayMutli2);
+PHP_METHOD(Test_Assign, testStaticPropertyArrayMutli3);
+PHP_METHOD(Test_Assign, testStaticPropertyArrayAppend1);
 PHP_METHOD(Test_Assign, testArrayVarAssign1);
 PHP_METHOD(Test_Assign, testArrayVarAssign2);
 PHP_METHOD(Test_Assign, testArrayProperty);
@@ -91,7 +102,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_test_assign_testpropertyarray11, 0, 0, 1)
 	ZEND_ARG_INFO(0, index)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_test_assign_testpropertyarray12, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_test_assign_teststaticpropertyarray3, 0, 0, 1)
+	ZEND_ARG_INFO(0, index)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_test_assign_teststaticpropertyarraymutli3, 0, 0, 1)
 	ZEND_ARG_INFO(0, index)
 ZEND_END_ARG_INFO()
 
@@ -117,6 +132,7 @@ ZEND_END_ARG_INFO()
 
 ZEPHIR_INIT_FUNCS(test_assign_method_entry) {
 	PHP_ME(Test_Assign, getTestVar, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, getMyArray, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testAssign1, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testAssign2, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testAssign3, NULL, ZEND_ACC_PUBLIC)
@@ -153,6 +169,8 @@ ZEPHIR_INIT_FUNCS(test_assign_method_entry) {
 	PHP_ME(Test_Assign, testAssign34, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testAssign35, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testAssign36, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testPropertyAssign1, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testPropertyAssign2, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testPropertyIncr1, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testPropertyAddAssign1, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testPropertyAddAssign2, NULL, ZEND_ACC_PUBLIC)
@@ -174,7 +192,15 @@ ZEPHIR_INIT_FUNCS(test_assign_method_entry) {
 	PHP_ME(Test_Assign, testPropertyArray9, arginfo_test_assign_testpropertyarray9, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testPropertyArray10, arginfo_test_assign_testpropertyarray10, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testPropertyArray11, arginfo_test_assign_testpropertyarray11, ZEND_ACC_PUBLIC)
-	PHP_ME(Test_Assign, testPropertyArray12, arginfo_test_assign_testpropertyarray12, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testStaticPropertyAssign1, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testStaticPropertyAssign2, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testStaticPropertyArray1, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testStaticPropertyArray2, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testStaticPropertyArray3, arginfo_test_assign_teststaticpropertyarray3, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testStaticPropertyArrayMutli1, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testStaticPropertyArrayMutli2, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testStaticPropertyArrayMutli3, arginfo_test_assign_teststaticpropertyarraymutli3, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Assign, testStaticPropertyArrayAppend1, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testArrayVarAssign1, arginfo_test_assign_testarrayvarassign1, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testArrayVarAssign2, arginfo_test_assign_testarrayvarassign2, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Assign, testArrayProperty, arginfo_test_assign_testarrayproperty, ZEND_ACC_PUBLIC)

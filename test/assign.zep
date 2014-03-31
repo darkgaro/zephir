@@ -9,7 +9,9 @@ class Assign
 {
 	protected testVar {get};
 
-	protected myArray;
+	protected myArray {get};
+
+	protected static testVarStatic;
 
 	public function testAssign1()
 	{
@@ -288,6 +290,37 @@ class Assign
 		return a;
 	}
 
+	public function testPropertyAssign1()
+	{
+		let this->testVar = 1;
+		let this->testVar = 1.5;
+		let this->testVar = null;
+		let this->testVar = false;
+		let this->testVar = true;
+		let this->testVar = 'A';
+		let this->testVar = "hello";
+		let this->testVar = [];
+		return this->testVar;
+	}
+
+	public function testPropertyAssign2()
+	{
+		int a = 1;
+		double b = 1.5;
+		var c = null;
+		boolean d = false;
+		char e = 'A';
+		array f = [];
+
+		let this->testVar = a;
+		let this->testVar = b;
+		let this->testVar = c;
+		let this->testVar = d;
+		let this->testVar = e;
+		let this->testVar = f;
+		return this->testVar;
+	}
+
 	public function testPropertyIncr1()
 	{
 		let this->testVar = 1;
@@ -500,21 +533,7 @@ class Assign
 		return this->myArray;
 	}
 
-	public function testPropertyArray11(string index)
-	{
-		let this->myArray = [];
-		let this->myArray[index][index] = 1;
-		let this->myArray[index][index] = 1.5;
-		let this->myArray[index][index] = null;
-		let this->myArray[index][index] = false;
-		let this->myArray[index][index] = true;
-		let this->myArray[index][index] = 'A';
-		let this->myArray[index][index] = "hello";
-		let this->myArray[index][index] = [];
-		return this->myArray;
-	}
-
-	public function testPropertyArray12(index)
+	public function testPropertyArray11(index)
 	{
 		let this->myArray[index][index][] = 1;
 		let this->myArray[index][index][] = 1.5;
@@ -525,6 +544,136 @@ class Assign
 		let this->myArray[index][index][] = "hello";
 		let this->myArray[index][index][] = [];
 		return this->myArray;
+	}
+
+	public function testStaticPropertyAssign1()
+	{
+		let self::testVarStatic = 1;
+		let self::testVarStatic = 1.5;
+		let self::testVarStatic = null;
+		let self::testVarStatic = false;
+		let self::testVarStatic = true;
+		let self::testVarStatic = 'A';
+		let self::testVarStatic = "hello";
+		let self::testVarStatic = [];
+		let self::testVarStatic = [1, 2, 3];
+		return self::testVarStatic;
+	}
+
+	public function testStaticPropertyAssign2()
+	{
+		int a = 1;
+		double b = 1.5;
+		var c = null;
+		boolean d = false;
+		char e = 'A';
+		array f = [];
+
+		let self::testVarStatic = a;
+		let self::testVarStatic = b;
+		let self::testVarStatic = c;
+		let self::testVarStatic = d;
+		let self::testVarStatic = e;
+		let self::testVarStatic = f;
+		return self::testVarStatic;
+	}
+
+	public function testStaticPropertyArray1()
+	{
+		let self::testVarStatic   = [];
+		let self::testVarStatic[0] = 1;
+		let self::testVarStatic[0] = 1.5;
+		let self::testVarStatic[0] = null;
+		let self::testVarStatic[0] = false;
+		let self::testVarStatic[0] = true;
+		let self::testVarStatic[0] = 'A';
+		let self::testVarStatic[0] = "hello";
+		let self::testVarStatic[0] = [];
+		return self::testVarStatic;
+	}
+
+	public function testStaticPropertyArray2()
+	{
+		let self::testVarStatic   = [];
+		let self::testVarStatic["hello"] = 1;
+		let self::testVarStatic["hello"] = 1.5;
+		let self::testVarStatic["hello"] = null;
+		let self::testVarStatic["hello"] = false;
+		let self::testVarStatic["hello"] = true;
+		let self::testVarStatic["hello"] = 'A';
+		let self::testVarStatic["hello"] = "hello";
+		let self::testVarStatic["hello"] = [];
+		return self::testVarStatic;
+	}
+
+	public function testStaticPropertyArray3(index)
+	{
+		let self::testVarStatic   = [];
+		let self::testVarStatic[index] = 1;
+		let self::testVarStatic[index] = 1.5;
+		let self::testVarStatic[index] = null;
+		let self::testVarStatic[index] = false;
+		let self::testVarStatic[index] = true;
+		let self::testVarStatic[index] = 'A';
+		let self::testVarStatic[index] = "hello";
+		let self::testVarStatic[index] = [];
+		return self::testVarStatic;
+	}
+
+	public function testStaticPropertyArrayMutli1()
+	{
+		let self::testVarStatic       = [];
+		let self::testVarStatic[0][0] = 1;
+		let self::testVarStatic[0][0] = 1.5;
+		let self::testVarStatic[0][0] = null;
+		let self::testVarStatic[0][0] = false;
+		let self::testVarStatic[0][0] = true;
+		let self::testVarStatic[0][0] = 'A';
+		let self::testVarStatic[0][0] = "hello";
+		let self::testVarStatic[0][0] = [];
+		return self::testVarStatic;
+	}
+
+	public function testStaticPropertyArrayMutli2()
+	{
+		let self::testVarStatic                   = [];
+		let self::testVarStatic["hello"]["hello"] = 1;
+		let self::testVarStatic["hello"]["hello"] = 1.5;
+		let self::testVarStatic["hello"]["hello"] = null;
+		let self::testVarStatic["hello"]["hello"] = false;
+		let self::testVarStatic["hello"]["hello"] = true;
+		let self::testVarStatic["hello"]["hello"] = 'A';
+		let self::testVarStatic["hello"]["hello"] = "hello";
+		let self::testVarStatic["hello"]["hello"] = [];
+		return self::testVarStatic;
+	}
+
+	public function testStaticPropertyArrayMutli3(index)
+	{
+		let self::testVarStatic               = [];
+		let self::testVarStatic[index][index] = 1;
+		let self::testVarStatic[index][index] = 1.5;
+		let self::testVarStatic[index][index] = null;
+		let self::testVarStatic[index][index] = false;
+		let self::testVarStatic[index][index] = true;
+		let self::testVarStatic[index][index] = 'A';
+		let self::testVarStatic[index][index] = "hello";
+		let self::testVarStatic[index][index] = [];
+		return self::testVarStatic;
+	}
+
+	public function testStaticPropertyArrayAppend1()
+	{
+		let self::testVarStatic      = [];
+		let self::testVarStatic[0][] = 1;
+		let self::testVarStatic[0][] = 1.5;
+		let self::testVarStatic[0][] = null;
+		let self::testVarStatic[0][] = false;
+		let self::testVarStatic[0][] = true;
+		let self::testVarStatic[0][] = 'A';
+		let self::testVarStatic[0][] = "hello";
+		let self::testVarStatic[0][] = [];
+		return self::testVarStatic;
 	}
 
 	public function testArrayVarAssign1(var index, var value)

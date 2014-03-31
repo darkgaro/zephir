@@ -41,6 +41,7 @@ use Zephir\Statements\Let\ObjectPropertyIncr as LetObjectPropertyIncr;
 use Zephir\Statements\Let\ObjectPropertyDecr as LetObjectPropertyDecr;
 use Zephir\Statements\Let\StaticProperty as LetStaticProperty;
 use Zephir\Statements\Let\StaticPropertyArrayIndex as LetStaticPropertyArrayIndex;
+use Zephir\Statements\Let\StaticPropertyArrayIndexAppend as LetStaticPropertyArrayIndexAppend;
 use Zephir\Statements\Let\Decr as LetDecr;
 use Zephir\Statements\Let\Incr as LetIncr;
 use Zephir\Statements\Let\ExportSymbol as LetExportSymbol;
@@ -74,7 +75,8 @@ class LetStatement extends StatementAbstract
                 case 'static-property':
                 case 'static-property-append':
                 case 'static-property-array-index':
-                    $symbolVariable = $compilationContext->symbolTable->getTempNonTrackedVariable('variable', $compilationContext);
+                case 'static-property-array-index-append':
+                    $symbolVariable = null;
                     break;
                 default:
                     $symbolVariable = $compilationContext->symbolTable->getVariableForWrite($variable, $compilationContext, $assignment);
@@ -159,7 +161,7 @@ class LetStatement extends StatementAbstract
 
                 case 'static-property':
                     $let = new LetStaticProperty();
-                    $let->assign($variable, $assignment['property'], $symbolVariable, $resolvedExpr, $compilationContext, $assignment);
+                    $let->assignStatic($variable, $assignment['property'], $resolvedExpr, $compilationContext, $assignment);
                     break;
 
                 case 'static-property-append':
@@ -168,7 +170,12 @@ class LetStatement extends StatementAbstract
 
                 case 'static-property-array-index':
                     $let = new LetStaticPropertyArrayIndex();
-                    $let->assign($variable, $assignment['property'], $symbolVariable, $resolvedExpr, $compilationContext, $assignment);
+                    $let->assignStatic($variable, $assignment['property'], $resolvedExpr, $compilationContext, $assignment);
+                    break;
+
+                case 'static-property-array-index-append':
+                    $let = new LetStaticPropertyArrayIndexAppend();
+                    $let->assignStatic($variable, $assignment['property'], $resolvedExpr, $compilationContext, $assignment);
                     break;
 
                 case 'array-index':
