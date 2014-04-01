@@ -506,45 +506,49 @@ class MethodCall extends Call
 
             }
 
-        } else if (is_object($variableMethod->getPossibleValue())){
-            /**
-             * Check if the method call can have an inline cache
-             */
-            $methodCache = $compilationContext->cacheManager->getMethodCache();
-            $cachePointer = $methodCache->get($compilationContext, isset($method) ? $method : null);
 
-            $methodName = $expression['name'];
+        } else {
+            if ($type == self::CALL_DYNAMIC) {
 
-            if ($variableMethod->isLocalOnly()) {
-                $strValType = "Z_STRVAL";
-            }
-            else {
-                $strValType = "Z_STRVAL_P";
-            }
-
-
-            if (!count($params)) {
-
-                if ($isExpecting) {
-                    if ($symbolVariable->getName() == 'return_value') {
-                        $codePrinter->output('ZEPHIR_RETURN_CALL_METHOD(' . $variableVariable->getName() . ',  '.$strValType.'(' . $methodName. '), ' . $cachePointer . ');');
-                    } else {
-                        $codePrinter->output('ZEPHIR_CALL_METHOD(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', '.$strValType.'(' . $methodName. '),  ' . $cachePointer . ');');
-                    }
-                } else {
-                    $codePrinter->output('ZEPHIR_CALL_METHOD(NULL, ' . $variableVariable->getName() . ',  '.$strValType.'(' . $methodName. '), ' . $cachePointer . ');');
+                switch ($variableMethod->getType()) {
+                    case 'string':
+                    case 'variable':
+                        break;
+                    default:
+                        throw new Exception('Cannot use variable type: ' . $variableMethod->getType() . ' as method caller');
                 }
 
-            } else {
+                if ($variableMethod->getType() == 'variable') {
 
-                if ($isExpecting) {
-                    if ($symbolVariable->getName() == 'return_value') {
-                        $codePrinter->output('ZEPHIR_RETURN_CALL_METHOD(' . $variableVariable->getName() . ',  '.$strValType.'(' . $methodName. '), ' . $cachePointer . ', ' . join(', ', $params) . ');');
+                }
+
+                $cachePointer = 'NULL';
+
+                if (!count($params)) {
+
+                    if ($isExpecting) {
+                        if ($symbolVariable->getName() == 'return_value') {
+                            $codePrinter->output('ZEPHIR_RETURN_CALL_METHOD(' . $variableVariable->getName() . ', Z_STRVAL_P(' . $variableMethod->getName() . '), ' . $cachePointer . ');');
+                        } else {
+                            $codePrinter->output('ZEPHIR_CALL_METHOD(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', Z_STRVAL_P(' . $variableMethod->getName() . '),  ' . $cachePointer . ');');
+                        }
                     } else {
-                        $codePrinter->output('ZEPHIR_CALL_METHOD(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', '.$strValType.'(' . $methodName. '), ' . $cachePointer . ', ' . join(', ', $params) . ');');
+                        $codePrinter->output('ZEPHIR_CALL_METHOD(NULL, ' . $variableVariable->getName() . ', Z_STRVAL_P(' . $variableMethod->getName() . '), ' . $cachePointer . ');');
                     }
+
                 } else {
-                    $codePrinter->output('ZEPHIR_CALL_METHOD(NULL, ' . $variableVariable->getName() . ',  '.$strValType.'(' . $methodName. '), ' . $cachePointer . ', ' . join(', ', $params) . ');');
+
+                    if ($isExpecting) {
+                        if ($symbolVariable->getName() == 'return_value') {
+                            $codePrinter->output('ZEPHIR_RETURN_CALL_METHOD(' . $variableVariable->getName() . ', Z_STRVAL_P(' . $variableMethod->getName() . '), ' . $cachePointer . ', ' . join(', ', $params) . ');');
+                        } else {
+                            $codePrinter->output('ZEPHIR_CALL_METHOD(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', Z_STRVAL_P(' . $variableMethod->getName() . '), ' . $cachePointer . ', ' . join(', ', $params) . ');');
+                        }
+                    } else {
+                        $codePrinter->output('ZEPHIR_CALL_METHOD(NULL, ' . $variableVariable->getName() . ', Z_STRVAL_P(' . $variableMethod->getName() . '), ' . $cachePointer . ', ' . join(', ', $params) . ');');
+                    }
+
+
                 }
 
             }
