@@ -49,7 +49,7 @@ class TernaryOperator extends BaseOperator
         $returnVariable = $this->getExpected($compilationContext, $expression, false);
         $returnVariable->setLocalOnly(false);
 
-        if ($returnVariable->getType() != 'variable') {
+        if ($returnVariable->getType() != 'variable' || $returnVariable->getName() == 'return_value') {
             $returnVariable = $compilationContext->symbolTable->getTempVariableForWrite('variable', $compilationContext);
             if ($returnVariable->isTemporal()) {
                 $returnVariable->skipInitVariant(2);
