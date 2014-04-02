@@ -64,7 +64,7 @@ class Generator
             $source = $this->buildClass($class);
 
             $filename = ucfirst($class->getName()) . '.php';
-            $filePath = $path . str_replace($namespace, '', str_replace($namespace . '\\', '', strtolower($class->getNamespace())));
+            $filePath = $path . str_replace($namespace, '', str_replace( '\\', '/', $class->getNamespace()));
 
             if (!is_dir($filePath)) {
                 mkdir($filePath, 0777, true);
