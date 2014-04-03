@@ -26,11 +26,11 @@ use Zephir\CompiledExpression;
 use Zephir\Optimizers\OptimizerAbstract;
 
 /**
- * MergeAppendOptimizer
+ * UniqueKeyOptimizer
  *
- * Optimizes calls to 'merge_append' using internal function
+ * Optimizes calls to 'unique_key' using internal function
  */
-class MergeAppendOptimizer extends OptimizerAbstract
+class UniqueKeyOptimizer extends OptimizerAbstract
 {
     /**
      * @param array $expression
@@ -46,7 +46,7 @@ class MergeAppendOptimizer extends OptimizerAbstract
         }
 
         if (count($expression['parameters']) != 2) {
-            return false;
+            throw new CompilerException("'unique_key' only accepts three parameter");
         }
 
         /**
@@ -54,10 +54,21 @@ class MergeAppendOptimizer extends OptimizerAbstract
          */
         $call->processExpectedReturn($context);
 
-        $context->headersManager->add('kernel/array');
+        $symbolVariable = $call->getSymbolVariable();
+        if ($symbolVariable->isNotVariableAndString()) {
+            throw new CompilerException("Returned values by functions can only be assigned to variant variables", $expression);
+        }
+
+        if ($call->mustInitSymbolVariable()) {
+            $symbolVariable->initVariant($context);
+        }
+
+        $context->headersManager->add('kernel/string');
+
+        $symbolVariable->setDynamicTypes('string');
 
         $resolvedParams = $call->getReadOnlyResolvedParams($expression['parameters'], $context, $expression);
-        $context->codePrinter->output('zephir_merge_append(' . $resolvedParams[0] . ', ' . $resolvedParams[1] . ');');
-        return new CompiledExpression('null', null, $expression);
+        $context->codePrinter->output('zephir_unique_key(' . $symbolVariable->getName() . ', ' . $resolvedParams[0] . ', ' . $resolvedParams[1] . ' TSRMLS_CC);');
+        return new CompiledExpression('variable', $symbolVariable->getRealName(), $expression);
     }
 }

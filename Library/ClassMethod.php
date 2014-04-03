@@ -265,9 +265,18 @@ class ClassMethod
      * Checks whether at least one return type hint is null compatible
      *
      * @param string $type
+     * @return boolean
      */
     public function areReturnTypesNullCompatible($type = null)
     {
+        if (count($this->_returnTypes)) {
+            foreach ($this->_returnTypes as $returnType => $definition) {
+                switch ($returnType) {
+                    case 'null':
+                        return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -275,6 +284,7 @@ class ClassMethod
      * Checks whether at least one return type hint is integer compatible
      *
      * @param string $type
+     * @return boolean
      */
     public function areReturnTypesIntCompatible($type = null)
     {
@@ -298,6 +308,7 @@ class ClassMethod
      * Checks whether at least one return type hint is double compatible
      *
      * @param string $type
+     * @return boolean
      */
     public function areReturnTypesDoubleCompatible($type = null)
     {
@@ -316,6 +327,7 @@ class ClassMethod
      * Checks whether at least one return type hint is integer compatible
      *
      * @param string $type
+     * @return boolean
      */
     public function areReturnTypesBoolCompatible($type = null)
     {
@@ -334,6 +346,7 @@ class ClassMethod
      * Checks whether at least one return type hint is integer compatible
      *
      * @param string $type
+     * @return boolean
      */
     public function areReturnTypesStringCompatible($type = null)
     {
@@ -616,6 +629,7 @@ class ClassMethod
     {
         if (!$symbolTable->getMustGrownStack()) {
             $containerCode = str_replace('ZEPHIR_THROW_EXCEPTION_STR', 'ZEPHIR_THROW_EXCEPTION_STRW', $containerCode);
+            $containerCode = str_replace('ZEPHIR_THROW_EXCEPTION_DEBUG_STR', 'ZEPHIR_THROW_EXCEPTION_DEBUG_STRW', $containerCode);
             $containerCode = str_replace('ZEPHIR_THROW_EXCEPTION_ZVAL', 'ZEPHIR_THROW_EXCEPTION_ZVALW', $containerCode);
             $containerCode = str_replace('RETURN_THIS', 'RETURN_THISW', $containerCode);
             $containerCode = str_replace('RETURN_LCTOR', 'RETURN_LCTORW', $containerCode);
@@ -900,10 +914,19 @@ class ClassMethod
                 return $code;
 
             case 'array':
+                $code  = "\tif (Z_TYPE_P(" . $parameter['name'] . '_param) != IS_' . strtoupper($dataType) . ') {' . PHP_EOL;
+                $code .= "\t\t" . 'zephir_throw_exception_string(spl_ce_InvalidArgumentException, SL("Parameter \'' . $parameter['name'] . '\' must be an ' . $dataType . '") TSRMLS_CC);' . PHP_EOL;
+                $code .= "\t\t" . 'RETURN_MM_NULL();' . PHP_EOL;
+                $code .= "\t" . '}' . PHP_EOL;
+                $code .= PHP_EOL;
+                $code .= "\t\t" . $parameter['name'] . ' = ' . $parameter['name'] . '_param;' . PHP_EOL;
+                $code .= PHP_EOL;
+                return $code;
+
             case 'object':
             case 'resource':
-                $code  = "\tif (Z_TYPE_P(" . $parameter['name'] . ') != IS_'.strtoupper($dataType).') {' . PHP_EOL;
-                $code .= "\t\t" . 'zephir_throw_exception_string(spl_ce_InvalidArgumentException, SL("Parameter \'' . $parameter['name'] . '\' must be an '.$dataType.'") TSRMLS_CC);' . PHP_EOL;
+                $code  = "\tif (Z_TYPE_P(" . $parameter['name'] . ') != IS_' . strtoupper($dataType) . ') {' . PHP_EOL;
+                $code .= "\t\t" . 'zephir_throw_exception_string(spl_ce_InvalidArgumentException, SL("Parameter \'' . $parameter['name'] . '\' must be an ' . $dataType . '") TSRMLS_CC);' . PHP_EOL;
                 $code .= "\t\t" . 'RETURN_MM_NULL();' . PHP_EOL;
                 $code .= "\t" . '}' . PHP_EOL;
                 $code .= PHP_EOL;
@@ -1436,13 +1459,15 @@ class ClassMethod
                     $dataType = 'variable';
                 }
 
-                switch($dataType) {
+                switch ($dataType) {
+
                     case 'object':
                     case 'callable':
                     case 'resource':
                     case 'variable':
                         $params[] = '&' . $parameter['name'];
                         break;
+
                     default:
                         $params[] = '&' . $parameter['name'] . '_param';
                         break;
@@ -1549,6 +1574,7 @@ class ClassMethod
              * Initialize optional parameters
              */
             foreach ($optionalParams as $parameter) {
+
                 if (isset($parameter['mandatory'])) {
                     $mandatory = $parameter['mandatory'];
                 } else {
