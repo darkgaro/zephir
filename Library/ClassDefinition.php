@@ -654,20 +654,43 @@ class ClassDefinition
         $classExtendsDefinition = null;
         if ($this->extendsClass) {
 
+            $externalClassExtend = false;
+            $entryClassCheck = false;
+            if ($compilationContext->config->get('extend_external', 'compiler_directives')) {
+                $entryClassCheck = true;
+                $externalClassExtend = true;
+            }
+
             $classExtendsDefinition = $this->extendsClassDefinition;
             if ($classExtendsDefinition instanceof ClassDefinition) {
                 $classEntry = $classExtendsDefinition->getClassEntry();
             } else {
-                $classEntry = $this->getClassEntryByClassName($classExtendsDefinition->getName(), $compilationContext);
+                $classEntry = $this->getClassEntryByClassName($classExtendsDefinition->getName(), $compilationContext, $entryClassCheck);
             }
 
-            if ($this->getType() == 'class') {
-                $codePrinter->output('ZEPHIR_REGISTER_CLASS_EX(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $classEntry . ', ' . $methodEntry . ', ' . $abstractFlag . ');');
-                $codePrinter->outputBlankLine();
-            } else {
-                $codePrinter->output('ZEPHIR_REGISTER_INTERFACE_EX(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $classEntry . ', ' . $methodEntry . ');');
-                $codePrinter->outputBlankLine();
+            if ($classEntry === false && $externalClassExtend === true) {
+                $classEntry = strtolower(addslashes($classExtendsDefinition->getName()));
+                if ($this->getType() == 'class') {
+                    $codePrinter->output('ZEPHIR_REGISTER_CLASS_EXTEND(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', "' . $classEntry . '", ' . $methodEntry . ', ' . $abstractFlag . ');');
+                    $codePrinter->outputBlankLine();
+                } else {
+                    $codePrinter->output('ZEPHIR_REGISTER_INTERFACE_EX(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $classEntry . ', ' . $methodEntry . ');');
+                    $codePrinter->outputBlankLine();
+                }
+
             }
+            else {
+                if ($this->getType() == 'class') {
+                    $codePrinter->output('ZEPHIR_REGISTER_CLASS_EX(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $classEntry . ', ' . $methodEntry . ', ' . $abstractFlag . ');');
+                    $codePrinter->outputBlankLine();
+                } else {
+                    $codePrinter->output('ZEPHIR_REGISTER_INTERFACE_EX(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $classEntry . ', ' . $methodEntry . ');');
+                    $codePrinter->outputBlankLine();
+                }
+
+            }
+
+
         } else {
             if ($this->getType() == 'class') {
                 $codePrinter->output('ZEPHIR_REGISTER_CLASS(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $methodEntry . ', ' . $abstractFlag . ');');

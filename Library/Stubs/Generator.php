@@ -225,7 +225,22 @@ EOF;
             $docBlock = $this->buildDocBlock($docBlock);
         }
 
-        $methodBody = "\t".$modifier . ' function '.$method->getName().'()';
+        $paramsStringArray = array();
+        if ($method->hasParameters()) {
+            $paramsArray = $method->getParameters()->getParameters();
+            foreach ($paramsArray as $paramItem) {
+                if (strlen($paramItem['name'])) {
+                    $paramDefault = '';
+                    if (isset($paramItem['default'])){
+                        $paramDefault = ' = '.$paramItem['default']['type'];
+                    }
+                    $paramsStringArray[] = ' $'.$paramItem['name'].$paramDefault;
+                }
+            }
+        }
+        $paramsString = implode(",",$paramsStringArray);
+
+        $methodBody = "\t".$modifier . ' function '.$method->getName().'('.$paramsString.')';
         if ($method->isAbstract()) {
             $methodBody .= ';';
         } else {

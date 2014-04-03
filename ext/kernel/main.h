@@ -382,6 +382,23 @@ int zephir_fetch_parameters(int num_args TSRMLS_DC, int required_args, int optio
 		lower_ns## _ ##lcname## _ce->ce_flags |= flags;  \
 	}
 
+#define ZEPHIR_REGISTER_CLASS_EXTEND(ns, class_name, lower_ns, lcname, parent_ce, methods, flags) \
+	{ \
+		zend_class_entry ce; \
+		if (!parent_ce) { \
+			fprintf(stderr, "Can't register class %s::%s with null parent\n", #ns, #class_name); \
+			return FAILURE; \
+		} \
+		memset(&ce, 0, sizeof(zend_class_entry)); \
+		INIT_NS_CLASS_ENTRY(ce, #ns, #class_name, methods); \
+		lower_ns## _ ##lcname## _ce = zend_register_internal_class_ex(&ce,  NULL, parent_ce TSRMLS_CC); \
+		if (!lower_ns## _ ##lcname## _ce) { \
+			fprintf(stderr, "Phalcon Error: Class to extend '%s' was not found when registering class '%s'\n", (parent_ce ? parent_ce : "(null)"), ZEND_NS_NAME(#ns, #class_name)); \
+			return FAILURE; \
+		} \
+		lower_ns## _ ##lcname## _ce->ce_flags |= flags;  \
+	}
+
 #define ZEPHIR_REGISTER_INTERFACE(ns, classname, lower_ns, name, methods) \
 	{ \
 		zend_class_entry ce; \
