@@ -669,11 +669,13 @@ class ClassDefinition
             }
 
             if ($classEntry === false && $externalClassExtend === true) {
-                $classEntry = strtolower(addslashes($classExtendsDefinition->getName()));
+
                 if ($this->getType() == 'class') {
+                    $classEntry = strtolower(addslashes($classExtendsDefinition->getName()));
                     $codePrinter->output('ZEPHIR_REGISTER_CLASS_EXTEND(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', "' . $classEntry . '", ' . $methodEntry . ', ' . $abstractFlag . ');');
                     $codePrinter->outputBlankLine();
                 } else {
+                    $classEntry =  $this->getClassEntry($classExtendsDefinition->getName());
                     $codePrinter->output('ZEPHIR_REGISTER_INTERFACE_EX(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $classEntry . ', ' . $methodEntry . ');');
                     $codePrinter->outputBlankLine();
                 }
@@ -761,13 +763,25 @@ class ClassDefinition
                  */
                 $classEntry = false;
 
+                $doZendClassImplementsByName = false;
+
                 if ($compiler->isInterface($interface)) {
                     $classInterfaceDefinition = $compiler->getClassDefinition($interface);
                     $classEntry = $classInterfaceDefinition->getClassEntry();
                 } else {
                     if ($compiler->isInternalInterface($interface)) {
                         $classInterfaceDefinition = $compiler->getInternalClassDefinition($interface);
-                        $classEntry = $this->getClassEntryByClassName($classInterfaceDefinition->getName(), $compilationContext);
+                        $externalClassExtend = false;
+                        $entryClassCheck = false;
+                        if ($compilationContext->config->get('extend_external', 'compiler_directives')) {
+                            $entryClassCheck = true;
+                            $externalClassExtend = true;
+                        }
+                        $classEntry = $this->getClassEntryByClassName($classInterfaceDefinition->getName(), $compilationContext, $entryClassCheck);
+                        if ($classEntry === false && $externalClassExtend === true) {
+                            $classEntry =  strtolower(addslashes($interface));
+                            $doZendClassImplementsByName = true;
+                        }
                     }
                 }
 
@@ -782,7 +796,13 @@ class ClassDefinition
                     $this->checkInterfaceImplements($this, $classInterfaceDefinition);
                 }
 
-                $codePrinter->output('zend_class_implements(' . $this->getClassEntry() . ' TSRMLS_CC, 1, ' . $classEntry . ');');
+                if ($doZendClassImplementsByName === true) {
+                    $codePrinter->output('zephir_class_implements_by_name(' . $this->getClassEntry() . ' TSRMLS_CC, 1, "' . $classEntry . '");');
+                }
+                else {
+                    $codePrinter->output('zend_class_implements(' . $this->getClassEntry() . ' TSRMLS_CC, 1, ' . $classEntry . ');');
+                }
+
             }
         }
 

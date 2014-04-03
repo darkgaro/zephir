@@ -49,6 +49,33 @@ zend_class_entry *zephir_register_internal_interface_ex(zend_class_entry *orig_c
 	return ce;
 }
 
+int zephir_class_implements_by_name(zend_class_entry *class_entry TSRMLS_DC, int num_interfaces, ...) /* {{{ */
+{
+	zend_class_entry *interface_entry;
+	char *interface_name;
+	va_list interface_list;
+	va_start(interface_list, num_interfaces);
+
+	while (num_interfaces--) {
+		    interface_name = va_arg(interface_list, char *);
+
+        	if (interface_name) {
+        		zend_class_entry **pce;
+        		if (zend_hash_find(CG(class_table), interface_name, strlen(interface_name)+1, (void **) &pce)==FAILURE) {
+        		    fprintf(stderr, "Phalcon Error: Could not find the interface '%s' to implement \n", (interface_name ? interface_name : "(null)"));
+        			return 0;
+        		} else {
+        			interface_entry = *pce;
+        		}
+        	}
+
+		zend_do_implement_interface(class_entry, interface_entry TSRMLS_CC);
+		return 1;
+	}
+
+	va_end(interface_list);
+}
+
 /**
  * Initilializes super global variables if doesn't
  */

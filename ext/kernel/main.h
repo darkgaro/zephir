@@ -66,6 +66,9 @@ zend_class_entry *zephir_register_internal_interface_ex(zend_class_entry *orig_c
 int zephir_init_global(char *global, unsigned int global_length TSRMLS_DC);
 int zephir_get_global(zval **arr, const char *global, unsigned int global_length TSRMLS_DC);
 
+/* custom interface loader */
+int zephir_class_implements_by_name(zend_class_entry *class_entry TSRMLS_DC, int num_interfaces, ...);
+
 int zephir_is_callable(zval *var TSRMLS_DC);
 int zephir_function_exists(const zval *function_name TSRMLS_DC);
 int zephir_function_exists_ex(const char *func_name, unsigned int func_len TSRMLS_DC);
