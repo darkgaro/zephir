@@ -437,7 +437,7 @@ class StaticCall extends Call
 
         $expression = $expr->getExpression();
 
-        $dynamicMethod = $expression['dynamic'];
+        $dynamicMethod = @$expression['dynamic'];
         if (!$dynamicMethod) {
             $methodName = strtolower($expression['name']);
         }
