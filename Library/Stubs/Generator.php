@@ -229,6 +229,7 @@ EOF;
         $methodBody = "\t" . $modifier . ' function ' . $method->getName() . '(' . implode(', ', $parameters) . ')';
 
         if ($isInterface || $method->isAbstract()) {
+
             $methodBody .= ';';
         } else {
             $methodBody .= ' {}';

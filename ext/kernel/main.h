@@ -66,6 +66,9 @@ zend_class_entry *zephir_register_internal_interface_ex(zend_class_entry *orig_c
 int zephir_init_global(char *global, unsigned int global_length TSRMLS_DC);
 int zephir_get_global(zval **arr, const char *global, unsigned int global_length TSRMLS_DC);
 
+/* custom interface loader */
+int zephir_class_implements_by_name(zend_class_entry *class_entry TSRMLS_DC, int num_interfaces, ...);
+
 int zephir_is_callable(zval *var TSRMLS_DC);
 int zephir_function_exists(const zval *function_name TSRMLS_DC);
 int zephir_function_exists_ex(const char *func_name, unsigned int func_len TSRMLS_DC);
@@ -451,6 +454,23 @@ static inline char *_str_erealloc(char *str, size_t new_len, size_t old_len) {
 		lower_ns## _ ##lcname## _ce = zend_register_internal_class_ex(&ce, parent_ce, NULL TSRMLS_CC); \
 		if (!lower_ns## _ ##lcname## _ce) { \
 			fprintf(stderr, "Phalcon Error: Class to extend '%s' was not found when registering class '%s'\n", (parent_ce ? parent_ce->name : "(null)"), ZEND_NS_NAME(#ns, #class_name)); \
+			return FAILURE; \
+		} \
+		lower_ns## _ ##lcname## _ce->ce_flags |= flags;  \
+	}
+
+#define ZEPHIR_REGISTER_CLASS_EXTEND(ns, class_name, lower_ns, lcname, parent_ce, methods, flags) \
+	{ \
+		zend_class_entry ce; \
+		if (!parent_ce) { \
+			fprintf(stderr, "Can't register class %s::%s with null parent\n", #ns, #class_name); \
+			return FAILURE; \
+		} \
+		memset(&ce, 0, sizeof(zend_class_entry)); \
+		INIT_NS_CLASS_ENTRY(ce, #ns, #class_name, methods); \
+		lower_ns## _ ##lcname## _ce = zend_register_internal_class_ex(&ce,  NULL, parent_ce TSRMLS_CC); \
+		if (!lower_ns## _ ##lcname## _ce) { \
+			fprintf(stderr, "Phalcon Error: Class to extend '%s' was not found when registering class '%s'\n", (parent_ce ? parent_ce : "(null)"), ZEND_NS_NAME(#ns, #class_name)); \
 			return FAILURE; \
 		} \
 		lower_ns## _ ##lcname## _ce->ce_flags |= flags;  \
