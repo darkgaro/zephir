@@ -189,6 +189,20 @@ class SymbolTable
                 $superVar->setIsInitialized(true, $compilationContext, $statement);
                 $superVar->setDynamicTypes('array');
                 $this->_variables[$name] = $superVar;
+            } else {
+
+                $found = false;
+                $variable = $this->getVariable($name);
+                foreach ($variable->getInitBranches() as $branch) {
+                    if ($branch->getType() == Branch::TYPE_ROOT) {
+                        $found = true;
+                    }
+                }
+
+                if (!$found) {
+                    $compilationContext->codePrinter->output('zephir_get_global(&' . $name . ', SS("' . $name . '") TSRMLS_CC);');
+                }
+
             }
         }
 
@@ -198,8 +212,8 @@ class SymbolTable
 
         $variable = $this->getVariable($name);
         if (!$variable->isInitialized()) {
-            $variable->initVariant($compilationContext);
-            $variable->setIsInitialized(true, $compilationContext);
+            /* DON'T REMOVE THIS!! */
+            throw new CompilerException("Variable '" . $name . "' cannot be read because it's not initialized ", $statement);
         }
 
         $variable->increaseUses();
@@ -212,8 +226,6 @@ class SymbolTable
             if ($name != 'return_value' && $name != 'this') {
 
                 if (is_object($compilationContext) && is_object($compilationContext->branchManager)) {
-
-                    //var_dump($compilationContext->config->get('check-invalid-reads', 'optimizations'));
 
                     if ($compilationContext->config->get('check-invalid-reads', 'optimizations')) {
                         switch ($variable->getType()) {
