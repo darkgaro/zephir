@@ -62,6 +62,11 @@ class SymbolTable
         $returnValue->setIsInitialized(true, $compilationContext, array());
         $returnValue->increaseUses();
         $this->_variables['return_value'] = $returnValue;
+
+        $returnValue = new Variable('variable', 'return_value_ptr', $compilationContext->currentBranch);
+        $returnValue->setIsInitialized(true, $compilationContext, array());
+        $returnValue->increaseUses();
+        $this->_variables['return_value_ptr'] = $returnValue;
     }
 
     /**
@@ -213,7 +218,7 @@ class SymbolTable
         $variable = $this->getVariable($name);
         if (!$variable->isInitialized()) {
             /* DON'T REMOVE THIS!! */
-            throw new CompilerException("Variable '" . $name . "' cannot be read because it's not initialized ", $statement);
+            throw new CompilerException("Variable '" . $name . "' cannot be read because it's not initialized", $statement);
         }
 
         $variable->increaseUses();
@@ -771,7 +776,7 @@ class SymbolTable
     }
 
     /**
-     * Returns the last line where a any kind of call is performed within the method
+     * Returns the last line where any kind of call was performed within the method
      * This is not necessary related to the symbol table but this information is gathered
      * by the LocalContextPass
      *
@@ -781,6 +786,21 @@ class SymbolTable
     {
         if ($this->_localContext) {
             return $this->_localContext->getLastCallLine();
+        }
+        return 0;
+    }
+
+    /**
+     * Returns the last line where an 'unset' operation was made within the current method
+     * This is not necessary related to the symbol table but this information is gathered
+     * by the LocalContextPass
+     *
+     * @return int
+     */
+    public function getLastUnsetLine()
+    {
+        if ($this->_localContext) {
+            return $this->_localContext->getLastUnsetLine();
         }
         return 0;
     }

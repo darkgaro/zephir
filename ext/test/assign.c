@@ -481,15 +481,15 @@ PHP_METHOD(Test_Assign, testPropertyAssign2) {
 
 	ZEPHIR_INIT_ZVAL_NREF(_0);
 	ZVAL_LONG(_0, a);
-	zephir_update_property_zval(this_ptr, SL("testVar"), _0 TSRMLS_CC);
+	zephir_update_property_this(this_ptr, SL("testVar"), _0 TSRMLS_CC);
 	ZEPHIR_INIT_ZVAL_NREF(_0);
 	ZVAL_DOUBLE(_0, b);
-	zephir_update_property_zval(this_ptr, SL("testVar"), _0 TSRMLS_CC);
+	zephir_update_property_this(this_ptr, SL("testVar"), _0 TSRMLS_CC);
 	zephir_update_property_this(this_ptr, SL("testVar"), c TSRMLS_CC);
 	zephir_update_property_this(this_ptr, SL("testVar"), d ? ZEPHIR_GLOBAL(global_true) : ZEPHIR_GLOBAL(global_false) TSRMLS_CC);
 	ZEPHIR_INIT_ZVAL_NREF(_0);
 	ZVAL_LONG(_0, e);
-	zephir_update_property_zval(this_ptr, SL("testVar"), _0 TSRMLS_CC);
+	zephir_update_property_this(this_ptr, SL("testVar"), _0 TSRMLS_CC);
 	zephir_update_property_this(this_ptr, SL("testVar"), f TSRMLS_CC);
 	RETURN_MM_MEMBER(this_ptr, "testVar");
 
@@ -1045,6 +1045,7 @@ PHP_METHOD(Test_Assign, testStaticPropertyAssign1) {
 	ZVAL_LONG(_0, 'A');
 	zephir_update_static_property_ce(test_assign_ce, SL("testVarStatic"), _0 TSRMLS_CC);
 	ZEPHIR_INIT_ZVAL_NREF(_0);
+	ZEPHIR_INIT_VAR(_0);
 	ZVAL_STRING(_0, "hello", 1);
 	zephir_update_static_property_ce(test_assign_ce, SL("testVarStatic"), _0 TSRMLS_CC);
 	ZEPHIR_INIT_VAR(_1);

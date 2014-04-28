@@ -73,8 +73,8 @@ ZEND_EXTERN_MODULE_GLOBALS(test)
 	#define ZEPHIR_VGLOBAL &(test_globals)
 #endif
 
-#define zephir_globals test_globals
-#define zend_zephir_globals zend_test_globals
+#define zephir_globals_def test_globals
+#define zend_zephir_globals_def zend_test_globals
 
 extern zend_module_entry test_module_entry;
 #define phpext_test_ptr &test_module_entry

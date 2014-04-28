@@ -850,7 +850,6 @@ class ClassDefinition
          * Compile methods
          */
         foreach ($methods as $method) {
-
             $docBlock = $method->getDocBlock();
             if ($docBlock) {
                 $codePrinter->outputDocBlock($docBlock);
@@ -860,7 +859,9 @@ class ClassDefinition
                 $codePrinter->output('PHP_METHOD(' . $this->getCNamespace() . '_' . $this->getName() . ', ' . $method->getName() . ') {');
                 $codePrinter->outputBlankLine();
 
-                $method->compile($compilationContext);
+                if (!$method->isAbstract()) {
+                    $method->compile($compilationContext);
+                }
 
                 $codePrinter->output('}');
                 $codePrinter->outputBlankLine();
@@ -1076,6 +1077,10 @@ class ClassDefinition
             case 'recursiveregexiterator':
                 $classEntry = 'spl_ce_RecursiveRegexIterator';
                 break;
+             case 'directoryiterator':
+                $compilationContext->headersManager->add('ext/spl/spl_directory');
+                $classEntry = 'spl_ce_DirectoryIterator';
+                break;
             case 'countable':
                 $classEntry = 'spl_ce_Countable';
                 break;
@@ -1117,6 +1122,10 @@ class ClassDefinition
             case 'pdo':
                 $compilationContext->headersManager->add('ext/pdo/php_pdo_driver');
                 $classEntry = 'php_pdo_get_dbh_ce()';
+                break;
+            case 'pdostatement':
+                $compilationContext->headersManager->add('kernel/main');
+                $classEntry = 'zephir_get_internal_ce(SS("pdostatement") TSRMLS_CC)';
                 break;
             case 'pdoexception':
                 $compilationContext->headersManager->add('ext/pdo/php_pdo_driver');

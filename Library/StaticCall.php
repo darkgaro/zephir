@@ -505,7 +505,7 @@ class StaticCall extends Call
                         if ($compiler->isInternalClass($className)) {
                             $classDefinition = ClassDefinition::buildFromReflection($compiler->getInternalClassDefinition('\\'.$className));
                         } else {
-                            throw new CompilerException("Class name: " . $expression['class'] . " does not exist", $expression);
+                            throw new CompilerException("Class name: " . $className . " does not exist", $expression);
                         }
                     }
                 } else {
@@ -514,7 +514,7 @@ class StaticCall extends Call
                         if ($compiler->isClass($singleClass)) {
                             $classDefinition = $compiler->getClassDefinition($singleClass);
                         } else {
-                            throw new CompilerException("Class name: " . $expression['class'] . " does not exist", $expression);
+                            throw new CompilerException("Class name: " . $className . " does not exist", $expression);
                         }
                     }
                 }
