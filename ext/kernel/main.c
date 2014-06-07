@@ -49,6 +49,7 @@ zend_class_entry *zephir_register_internal_interface_ex(zend_class_entry *orig_c
 	return ce;
 }
 
+
 int zephir_class_implements_by_name(zend_class_entry *class_entry TSRMLS_DC, int num_interfaces, ...) /* {{{ */
 {
 	zend_class_entry *interface_entry;
@@ -75,6 +76,7 @@ int zephir_class_implements_by_name(zend_class_entry *class_entry TSRMLS_DC, int
 
 	va_end(interface_list);
 }
+
 
 /**
  * Initilializes super global variables if doesn't

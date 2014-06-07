@@ -889,20 +889,20 @@ class ClassMethod
             case 'uint':
             case 'long':
                 $code  = "\tif (unlikely(Z_TYPE_P(" . $parameter['name'] . '_param) != IS_LONG)) {' . PHP_EOL;
-                $code .= "\t\t\t" . 'zephir_throw_exception_string(spl_ce_InvalidArgumentException, SL("Parameter \'' . $parameter['name'] . '\' must be a long/integer") TSRMLS_CC);' . PHP_EOL;
-                $code .= "\t\t\t" . 'RETURN_MM_NULL();' . PHP_EOL;
-                $code .= "\t\t" . '}' . PHP_EOL;
+                $code .= "\t\t" . 'zephir_throw_exception_string(spl_ce_InvalidArgumentException, SL("Parameter \'' . $parameter['name'] . '\' must be a long/integer") TSRMLS_CC);' . PHP_EOL;
+                $code .= "\t\t" . 'RETURN_MM_NULL();' . PHP_EOL;
+                $code .= "\t" . '}' . PHP_EOL;
                 $code .= PHP_EOL;
-                $code .= "\t\t" . $parameter['name'] . ' = Z_LVAL_P(' . $parameter['name'] . '_param);' . PHP_EOL;
+                $code .= "\t" . $parameter['name'] . ' = Z_LVAL_P(' . $parameter['name'] . '_param);' . PHP_EOL;
                 return $code;
 
             case 'bool':
                 $code  = "\tif (unlikely(Z_TYPE_P(" . $parameter['name'] . '_param) != IS_BOOL)) {' . PHP_EOL;
-                $code .= "\t\t\t" . 'zephir_throw_exception_string(spl_ce_InvalidArgumentException, SL("Parameter \'' . $parameter['name'] . '\' must be a bool") TSRMLS_CC);' . PHP_EOL;
-                $code .= "\t\t\t" . 'RETURN_MM_NULL();' . PHP_EOL;
-                $code .= "\t\t" . '}' . PHP_EOL;
+                $code .= "\t\t" . 'zephir_throw_exception_string(spl_ce_InvalidArgumentException, SL("Parameter \'' . $parameter['name'] . '\' must be a bool") TSRMLS_CC);' . PHP_EOL;
+                $code .= "\t\t" . 'RETURN_MM_NULL();' . PHP_EOL;
+                $code .= "\t" . '}' . PHP_EOL;
                 $code .= PHP_EOL;
-                $code .= "\t\t" . $parameter['name'] . ' = Z_BVAL_P(' . $parameter['name'] . '_param);' . PHP_EOL;
+                $code .= "\t" . $parameter['name'] . ' = Z_BVAL_P(' . $parameter['name'] . '_param);' . PHP_EOL;
                 return $code;
 
             case 'double':
@@ -1849,7 +1849,7 @@ class ClassMethod
              */
             $lastType = $this->_statements->getLastStatementType();
 
-            if ($lastType != 'return' && $lastType != 'throw') {
+            if ($lastType != 'return' && $lastType != 'throw' && !$this->hasChildReturnStatementType($this->_statements->getLastStatement())) {
 
                 if ($symbolTable->getMustGrownStack()) {
                     $compilationContext->headersManager->add('kernel/memory');
@@ -1883,5 +1883,52 @@ class ClassMethod
         $codePrinter->clear();
 
         return null;
+    }
+
+    public function hasChildReturnStatementType($statement)
+    {
+        if (!isset($statement['statements']) || !is_array($statement['statements'])) {
+            return false;
+        }
+
+        if ($statement['type'] == 'if') {
+            $ret = false;
+
+            $statements = $statement['statements'];
+            foreach ($statements as $item) {
+                $type = isset($item['type']) ? $item['type'] : null;
+                if ($type == 'return' || $type == 'throw') {
+                    $ret = true;
+                } else {
+                    $ret = $this->hasChildReturnStatementType($item);
+                }
+            }
+
+            if (!$ret || !isset($statement['else_statements'])) {
+                return false;
+            }
+
+            $statements = $statement['else_statements'];
+            foreach ($statements as $item) {
+                $type = isset($item['type']) ? $item['type'] : null;
+                if ($type == 'return' || $type == 'throw') {
+                    return true;
+                } else {
+                    return $this->hasChildReturnStatementType($item);
+                }
+            }
+        } else {
+            $statements = $statement['statements'];
+            foreach ($statements as $item) {
+                $type = isset($item['type']) ? $item['type'] : null;
+                if ($type == 'return' || $type == 'throw') {
+                    return true;
+                } else {
+                    return $this->hasChildReturnStatementType($item);
+                }
+            }
+        }
+
+        return false;
     }
 }

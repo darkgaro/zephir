@@ -654,6 +654,7 @@ class ClassDefinition
         $classExtendsDefinition = null;
         if ($this->extendsClass) {
 
+
             $externalClassExtend = false;
             $entryClassCheck = false;
             if ($compilationContext->config->get('extend_external', 'compiler_directives')) {
@@ -665,6 +666,7 @@ class ClassDefinition
             if ($classExtendsDefinition instanceof ClassDefinition) {
                 $classEntry = $classExtendsDefinition->getClassEntry();
             } else {
+
                 $classEntry = $this->getClassEntryByClassName($classExtendsDefinition->getName(), $compilationContext, $entryClassCheck);
             }
 
@@ -763,6 +765,7 @@ class ClassDefinition
                  */
                 $classEntry = false;
 
+
                 $doZendClassImplementsByName = false;
 
                 if ($compiler->isInterface($interface)) {
@@ -771,6 +774,7 @@ class ClassDefinition
                 } else {
                     if ($compiler->isInternalInterface($interface)) {
                         $classInterfaceDefinition = $compiler->getInternalClassDefinition($interface);
+
                         $externalClassExtend = false;
                         $entryClassCheck = false;
                         if ($compilationContext->config->get('extend_external', 'compiler_directives')) {
@@ -782,6 +786,7 @@ class ClassDefinition
                             $classEntry =  strtolower(addslashes($interface));
                             $doZendClassImplementsByName = true;
                         }
+
                     }
                 }
 
@@ -796,12 +801,14 @@ class ClassDefinition
                     $this->checkInterfaceImplements($this, $classInterfaceDefinition);
                 }
 
+
                 if ($doZendClassImplementsByName === true) {
                     $codePrinter->output('zephir_class_implements_by_name(' . $this->getClassEntry() . ' TSRMLS_CC, 1, "' . $classEntry . '");');
                 }
                 else {
                     $codePrinter->output('zend_class_implements(' . $this->getClassEntry() . ' TSRMLS_CC, 1, ' . $classEntry . ');');
                 }
+
 
             }
         }
@@ -1077,7 +1084,9 @@ class ClassDefinition
             case 'recursiveregexiterator':
                 $classEntry = 'spl_ce_RecursiveRegexIterator';
                 break;
-             case 'directoryiterator':
+
+            case 'directoryiterator':
+
                 $compilationContext->headersManager->add('ext/spl/spl_directory');
                 $classEntry = 'spl_ce_DirectoryIterator';
                 break;
@@ -1089,6 +1098,11 @@ class ClassDefinition
                 break;
             case 'recursivecallbackfilteriterator':
                 $classEntry = 'spl_ce_RecursiveCallbackFilterIterator';
+                break;
+
+            case 'arrayobject':
+                $compilationContext->headersManager->add('ext/spl/spl_array');
+                $classEntry = 'spl_ce_ArrayObject';
                 break;
 
             case 'splfixedarray':
