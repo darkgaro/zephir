@@ -12,8 +12,8 @@ class MethodDocBlock extends DocBlock
     public function __construct(ClassMethod $method, $indent = 4)
     {
         parent::__construct($method->getDocBlock(), $indent);
-        $this->parseMethodParameters($method);
         $this->parseLines();
+        $this->parseMethodParameters($method);
         if (!$this->return) {
             $this->parseMethodReturnType($method);
         }
@@ -27,6 +27,8 @@ class MethodDocBlock extends DocBlock
 
     protected function parseMethodReturnType(ClassMethod $method)
     {
+        if (is_array($this->return)) return;
+
         $return = array();
         $returnTypes = $method->getReturnTypes();
         if ($returnTypes) {
@@ -50,7 +52,7 @@ class MethodDocBlock extends DocBlock
         $lines = array();
 
         foreach ($this->lines as $line) {
-            if (preg_match('#@(param|return) *(\w+)* *(\$\w+)* *(.+?)*#', $line, $matches) === 0) {
+            if (preg_match('#@(param|return) *([\w\\\|]+)* *(\$?\w+)* *(.+?)*#', $line, $matches) === 0) {
                 $lines[] = $line;
             } else {
 
@@ -77,6 +79,7 @@ class MethodDocBlock extends DocBlock
 
     private function parseMethodParameters(ClassMethod $method)
     {
+        if (count($this->parameters)) return;
         $parameters = $method->getParameters();
         if (!$parameters) {
             return;
@@ -93,7 +96,7 @@ class MethodDocBlock extends DocBlock
             } else {
                 $type = 'mixed';
             }
-            $this->parameters['$' . $parameter['name']] = array($type, '');
+            if (!isset($this->parameters['$' . $parameter['name']]) && !isset($this->parameters[$parameter['name']])) $this->parameters['$' . $parameter['name']] = array($type, '');
         }
     }
 
@@ -101,6 +104,7 @@ class MethodDocBlock extends DocBlock
     {
         foreach ($this->parameters as $name => $parameter) {
             list($type, $description) = $parameter;
+            if (strlen($name) && strpos($name,"$") !== 0) $name = '$'.$name;
             $this->lines[] = '@param ' . $type . ' ' . $name . ' ' . $description;
         }
     }
