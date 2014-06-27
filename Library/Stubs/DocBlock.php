@@ -45,13 +45,15 @@ class DocBlock
     {
         $this->indent = str_repeat(' ', $indent);
         foreach (explode("\n", trim($source, '/')) as $line) {
-            if ('' === $line = trim($line, '* ')) {
+            if ('' === $line = trim($line, '*')) {
                 continue;
             }
-            if (strpos($line, '@') === 0) {
+
+            if (strpos($line, '@param') !== false || strpos($line, '@return') !== false) {
                 $this->lines[] = $line;
             } else {
-                $line = preg_replace('~([\s\t]+)[*]([\s\t]+)~', '', $line);
+
+                $line = preg_replace('~([\s\t]+)[*]([^\n])?~', "", $line);
                 $this->lines[] = array_pop($this->lines) . "\n{$this->indent} * " . $line;
             }
         }
