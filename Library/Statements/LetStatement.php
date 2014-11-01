@@ -34,6 +34,7 @@ use Zephir\Statements\Let\ArrayIndex as LetArrayIndex;
 use Zephir\Statements\Let\ArrayIndexAppend as LetArrayIndexAppend;
 use Zephir\Statements\Let\ObjectProperty as LetObjectProperty;
 use Zephir\Statements\Let\ObjectDynamicProperty as LetObjectDynamicProperty;
+use Zephir\Statements\Let\ObjectDynamicStringProperty as LetObjectDynamicStringProperty;
 use Zephir\Statements\Let\ObjectPropertyAppend as LetObjectPropertyAppend;
 use Zephir\Statements\Let\ObjectPropertyArrayIndex as LetObjectPropertyArrayIndex;
 use Zephir\Statements\Let\ObjectPropertyArrayIndexAppend as LetObjectPropertyArrayIndexAppend;
@@ -45,6 +46,7 @@ use Zephir\Statements\Let\StaticPropertyArrayIndexAppend as LetStaticPropertyArr
 use Zephir\Statements\Let\Decr as LetDecr;
 use Zephir\Statements\Let\Incr as LetIncr;
 use Zephir\Statements\Let\ExportSymbol as LetExportSymbol;
+use Zephir\Statements\Let\ExportSymbolString as LetExportSymbolString;
 
 /**
  * LetStatement
@@ -65,18 +67,26 @@ class LetStatement extends StatementAbstract
         $statement = $this->_statement;
         foreach ($statement['assignments'] as $assignment) {
 
+            // @todo: Remove this
+            if (isset($assignment['operator']) && $assignment['operator'] == 'ref-assign') {
+                throw new CompilerException('Zephir not support reference assignment for now. Stay tuned for https://github.com/phalcon/zephir/issues/203', $assignment);
+            }
+
             $variable = $assignment['variable'];
 
             /**
              * Get the symbol from the symbol table if necessary
              */
             switch ($assignment['assign-type']) {
+
                 case 'static-property':
                 case 'static-property-append':
                 case 'static-property-array-index':
                 case 'static-property-array-index-append':
+                case 'dynamic-variable-string':
                     $symbolVariable = null;
                     break;
+
                 default:
                     $symbolVariable = $compilationContext->symbolTable->getVariableForWrite($variable, $compilationContext, $assignment);
                     break;
@@ -155,7 +165,8 @@ class LetStatement extends StatementAbstract
                     break;
 
                 case 'string-dynamic-object-property':
-                    /* @todo, implement this */
+                    $let = new LetObjectDynamicStringProperty();
+                    $let->assign($variable, $symbolVariable, $resolvedExpr, $compilationContext, $assignment);
                     break;
 
                 case 'static-property':
@@ -224,6 +235,11 @@ class LetStatement extends StatementAbstract
 
                 case 'dynamic-variable':
                     $let = new LetExportSymbol();
+                    $let->assign($variable, $symbolVariable, $resolvedExpr, $compilationContext, $assignment);
+                    break;
+
+                case 'dynamic-variable-string':
+                    $let = new LetExportSymbolString();
                     $let->assign($variable, $symbolVariable, $resolvedExpr, $compilationContext, $assignment);
                     break;
 

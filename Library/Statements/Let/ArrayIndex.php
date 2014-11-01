@@ -88,6 +88,10 @@ class ArrayIndex
                 $codePrinter->output('ZVAL_STRING(' . $symbolVariable->getName() . ', "' . $resolvedExpr->getCode() . '", 1);');
                 break;
 
+            case 'array':
+                $symbolVariable = $compilationContext->symbolTable->getVariableForRead($resolvedExpr->getCode(), $compilationContext, $resolvedExpr->getOriginal());
+                break;
+
             case 'variable':
                 $variableExpr = $compilationContext->symbolTable->getVariableForRead($resolvedExpr->getCode(), $compilationContext, $resolvedExpr->getOriginal());
                 switch ($variableExpr->getType()) {
@@ -152,7 +156,7 @@ class ArrayIndex
             case 'variable':
                 break;
             default:
-                throw new CompilerException("Index: " . $exprIndex->getType() . " cannot be used as array offset in assigment without cast", $statement['index-expr'][0]);
+                throw new CompilerException("Index: " . $exprIndex->getType() . " cannot be used as array offset in assignment without cast", $statement['index-expr'][0]);
         }
 
         $codePrinter = $compilationContext->codePrinter;
@@ -248,7 +252,7 @@ class ArrayIndex
                 case 'variable':
                     break;
                 default:
-                    throw new CompilerException("Index: " . $exprIndex->getType() . " cannot be used as array index in assigment without cast", $indexExpr);
+                    throw new CompilerException("Index: " . $exprIndex->getType() . " cannot be used as array index in assignment without cast", $indexExpr);
             }
 
             $offsetExprs[] = $exprIndex;
@@ -351,7 +355,7 @@ class ArrayIndex
         /**
          * Only dynamic variables can be used as arrays
          */
-        if ($symbolVariable->getType() != 'variable' && $symbolVariable->getType() != 'array') {
+        if ($symbolVariable->isNotVariableAndArray()) {
             throw new CompilerException("Cannot use variable type: '" . $symbolVariable->getType() . "' as array", $statement);
         }
 

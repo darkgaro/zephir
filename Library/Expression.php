@@ -60,6 +60,8 @@ use Zephir\Operators\Other\RequireOperator;
 use Zephir\Operators\Other\TypeOfOperator;
 use Zephir\Operators\Other\CastOperator;
 
+use Zephir\Expression\Closure;
+use Zephir\Expression\ClosureArrow;
 use Zephir\Expression\Constants;
 use Zephir\Expression\NativeArray;
 use Zephir\Expression\NativeArrayAccess;
@@ -71,7 +73,7 @@ use Zephir\Expression\StaticPropertyAccess;
 /**
  * Expressions
  *
- * Represents an expression. Most language constructions in a language are expressions
+ * Represents an expression. Most language constructs in a language are expressions
  */
 class Expression
 {
@@ -80,6 +82,8 @@ class Expression
     protected $_expecting = true;
 
     protected $_readOnly = false;
+
+    protected $_noisy = true;
 
     protected $_stringOperation = false;
 
@@ -163,6 +167,26 @@ class Expression
     }
 
     /**
+     * Sets whether the expression must be resolved in "noisy" mode
+     *
+     * @param boolean $noisy
+     */
+    public function setNoisy($noisy)
+    {
+        $this->_noisy = $noisy;
+    }
+
+    /**
+     * Checks whether the expression must be resolved in "noisy" mode
+     *
+     * @return boolean
+     */
+    public function isNoisy()
+    {
+        return $this->_noisy;
+    }
+
+    /**
      * Sets if current operation is a string operation like "concat"
      * thus avoiding promote numeric strings to longs
      *
@@ -220,7 +244,7 @@ class Expression
         /**
          * Variable that receives property accesses must be polimorphic
          */
-        if ($symbolVariable->getType() != 'variable' && $symbolVariable->getType() != 'array') {
+        if (!$symbolVariable->isVariable() && $symbolVariable->getType() != 'array') {
             throw new CompilerException("Cannot use variable: " . $symbolVariable->getName() . '(' . $symbolVariable->getType() . ") to create empty array", $expression);
         }
 
@@ -253,7 +277,7 @@ class Expression
         }
 
         $symbolVariable = $compilationContext->symbolTable->getVariableForRead($resolved->getCode(), $compilationContext, $expression);
-        if ($symbolVariable->getType() != 'variable') {
+        if (!$symbolVariable->isVariable()) {
             throw new CompilerException("Type-Hints only can be applied to dynamic variables", $expression);
         }
 
@@ -326,12 +350,14 @@ class Expression
             case 'array-access':
                 $arrayAccess = new NativeArrayAccess();
                 $arrayAccess->setReadOnly($this->isReadOnly());
+                $arrayAccess->setNoisy($this->isNoisy());
                 $arrayAccess->setExpectReturn($this->_expecting, $this->_expectingVariable);
                 return $arrayAccess->compile($expression, $compilationContext);
 
             case 'property-access':
                 $propertyAccess = new PropertyAccess();
                 $propertyAccess->setReadOnly($this->isReadOnly());
+                $propertyAccess->setNoisy($this->isNoisy());
                 $propertyAccess->setExpectReturn($this->_expecting, $this->_expectingVariable);
                 return $propertyAccess->compile($expression, $compilationContext);
 
@@ -339,6 +365,7 @@ class Expression
             case 'property-dynamic-access':
                 $propertyAccess = new PropertyDynamicAccess();
                 $propertyAccess->setReadOnly($this->isReadOnly());
+                $propertyAccess->setNoisy($this->isNoisy());
                 $propertyAccess->setExpectReturn($this->_expecting, $this->_expectingVariable);
                 return $propertyAccess->compile($expression, $compilationContext);
 
@@ -602,6 +629,18 @@ class Expression
                 $expr->setReadOnly($this->isReadOnly());
                 $expr->setExpectReturn($this->_expecting, $this->_expectingVariable);
                 return $expr->compile($expression, $compilationContext);
+
+            case 'closure':
+                $closure = new Closure();
+                $closure->setReadOnly($this->isReadOnly());
+                $closure->setExpectReturn($this->_expecting, $this->_expectingVariable);
+                return $closure->compile($expression, $compilationContext);
+
+            case 'closure-arrow':
+                $closure = new ClosureArrow();
+                $closure->setReadOnly($this->isReadOnly());
+                $closure->setExpectReturn($this->_expecting, $this->_expectingVariable);
+                return $closure->compile($expression, $compilationContext);
 
             default:
                 throw new CompilerException("Unknown expression: " . $type, $expression);

@@ -93,12 +93,6 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 			return 0;
 		}
 
-		'abstract' {
-			s->active_char += sizeof("abstract")-1;
-			token->opcode = XX_T_ABSTRACT;
-			return 0;
-		}
-
 		'interface' {
 			s->active_char += sizeof("interface")-1;
 			token->opcode = XX_T_INTERFACE;
@@ -107,6 +101,8 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 
 		'class' {
 			s->active_char += sizeof("class")-1;
+			s->class_line = s->active_line;
+			s->class_char = s->active_char;
 			token->opcode = XX_T_CLASS;
 			return 0;
 		}
@@ -153,6 +149,12 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 			return 0;
 		}
 
+		'deprecated' {
+			s->active_char += sizeof("deprecated")-1;
+			token->opcode = XX_T_DEPRECATED;
+			return 0;
+		}
+
 		'final' {
 			s->active_char += sizeof("final")-1;
 			token->opcode = XX_T_FINAL;
@@ -167,12 +169,16 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 
 		'function' {
 			s->active_char += sizeof("function")-1;
+			s->method_line = s->active_line;
+			s->method_char = s->active_char;
 			token->opcode = XX_T_FUNCTION;
 			return 0;
 		}
 
 		'fn' {
 			s->active_char += sizeof("fn")-1;
+			s->method_line = s->active_line;
+			s->method_char = s->active_char;
 			token->opcode = XX_T_FUNCTION;
 			return 0;
 		}
@@ -300,6 +306,12 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 		'else' {
 			s->active_char += sizeof("else")-1;
 			token->opcode = XX_T_ELSE;
+			return 0;
+		}
+
+		'elseif' {
+			s->active_char += sizeof("elseif")-1;
+			token->opcode = XX_T_ELSEIF;
 			return 0;
 		}
 
@@ -534,7 +546,7 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 			return 0;
 		}
 
-		IDENTIFIER = [\\_\$]?[\_a-zA-Z\\][a-zA-Z0-9\_\\]*;
+		IDENTIFIER = [\\_\$]?[_a-zA-Z\\][a-zA-Z0-9\_\\]*;
 		IDENTIFIER {
 
 			if (start[0] == '$') {
@@ -548,37 +560,45 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 			}
 			q = YYCURSOR;
 
-			if (!memcmp(token->value, "_GET", sizeof("_GET")-1)) {
-				token->opcode = XX_T_IDENTIFIER;
-				return 0;
+			if (token->len > 3) {
+
+				if (!memcmp(token->value, "_GET", sizeof("_GET")-1)) {
+					token->opcode = XX_T_IDENTIFIER;
+					return 0;
+				}
+
+				if (!memcmp(token->value, "_POST", sizeof("_POST")-1)) {
+					token->opcode = XX_T_IDENTIFIER;
+					return 0;
+				}
+
+				if (!memcmp(token->value, "_REQUEST", sizeof("_REQUEST")-1)) {
+					token->opcode = XX_T_IDENTIFIER;
+					return 0;
+				}
+
+				if (!memcmp(token->value, "_COOKIE", sizeof("_COOKIE")-1)) {
+					token->opcode = XX_T_IDENTIFIER;
+					return 0;
+				}
+
+				if (!memcmp(token->value, "_SERVER", sizeof("_SERVER")-1)) {
+					token->opcode = XX_T_IDENTIFIER;
+					return 0;
+				}
+
+				if (!memcmp(token->value, "_SESSION", sizeof("_SESSION")-1)) {
+					token->opcode = XX_T_IDENTIFIER;
+					return 0;
+				}
+
+				if (!memcmp(token->value, "_FILES", sizeof("_FILES")-1)) {
+					token->opcode = XX_T_IDENTIFIER;
+					return 0;
+				}
 			}
 
-			if (!memcmp(token->value, "_POST", sizeof("_POST")-1)) {
-				token->opcode = XX_T_IDENTIFIER;
-				return 0;
-			}
-
-			if (!memcmp(token->value, "_REQUEST", sizeof("_REQUEST")-1)) {
-				token->opcode = XX_T_IDENTIFIER;
-				return 0;
-			}
-
-			if (!memcmp(token->value, "_COOKIE", sizeof("_COOKIE")-1)) {
-				token->opcode = XX_T_IDENTIFIER;
-				return 0;
-			}
-
-			if (!memcmp(token->value, "_SERVER", sizeof("_SERVER")-1)) {
-				token->opcode = XX_T_IDENTIFIER;
-				return 0;
-			}
-
-			if (!memcmp(token->value, "_SESSION", sizeof("_SESSION")-1)) {
-				token->opcode = XX_T_IDENTIFIER;
-				return 0;
-			}
-
-			if (!memcmp(token->value, "_FILES", sizeof("_FILES")-1)) {
+			if (token->len == 1 && !memcmp(token->value, "_", sizeof("_")-1)) {
 				token->opcode = XX_T_IDENTIFIER;
 				return 0;
 			}
@@ -596,6 +616,7 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 				token->opcode = XX_T_IDENTIFIER;
 			}
 			return 0;
+
 		}
 
 		"(" {
@@ -781,6 +802,12 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 		"->" {
 			s->active_char += 2;
 			token->opcode = XX_T_ARROW;
+			return 0;
+		}
+
+		"=>" {
+			s->active_char += 2;
+			token->opcode = XX_T_DOUBLEARROW;
 			return 0;
 		}
 

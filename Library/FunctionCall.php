@@ -88,10 +88,21 @@ class FunctionCall extends Call
      * @param array $expression
      * @return boolean
      */
-    protected function isReadOnly($funcName, $expression)
+    protected function isReadOnly($funcName, array $expression)
     {
         if ($this->isBuiltInFunction($funcName)) {
             return false;
+        }
+
+        /**
+         * These functions are supposed to be read-only but they change parameters ref-count
+         */
+        switch ($funcName) {
+            case 'min':
+            case 'max':
+            case 'call_user_func':
+            case 'call_user_func_array':
+                return false;
         }
 
         $reflector = $this->getReflector($funcName);
@@ -112,20 +123,16 @@ class FunctionCall extends Call
                 }
             }
 
-            if ($numberParameters > 0) {
-                $n = 1;
-                $parameters = $reflector->getParameters();
-                foreach ($parameters as $parameter) {
-                    if ($numberParameters >= $n) {
-                        if ($parameter->isPassedByReference()) {
-                            return false;
-                        }
+            if ($reflector->getNumberOfParameters() > 0) {
+                foreach ($reflector->getParameters() as $parameter) {
+                    if ($parameter->isPassedByReference()) {
+                        return false;
                     }
-                    $n++;
                 }
             }
             return true;
         }
+
         return false;
     }
 
@@ -282,7 +289,7 @@ class FunctionCall extends Call
      * @param array $expression
      * @param CompilationContext $compilationContext
      */
-    protected function _callNormal($expression, $compilationContext)
+    protected function _callNormal(array $expression, $compilationContext)
     {
         $funcName = strtolower($expression['name']);
 
@@ -344,8 +351,7 @@ class FunctionCall extends Call
          */
         $symbolVariable = $this->getSymbolVariable();
         if ($symbolVariable) {
-
-            if ($symbolVariable->getType() != 'variable') {
+            if (!$symbolVariable->isVariable()) {
                 throw new CompilerException("Returned values by functions can only be assigned to variant variables", $expression);
             }
 
@@ -440,7 +446,7 @@ class FunctionCall extends Call
      * @param array $expression
      * @param CompilationContext $compilationContext
      */
-    protected function _callDynamic($expression, $compilationContext)
+    protected function _callDynamic(array $expression, $compilationContext)
     {
 
         $variable = $compilationContext->symbolTable->getVariableForRead($expression['name'], $compilationContext, $expression);
@@ -476,8 +482,7 @@ class FunctionCall extends Call
          */
         $symbolVariable = $this->getSymbolVariable();
         if ($symbolVariable) {
-
-            if ($symbolVariable->getType() != 'variable') {
+            if (!$symbolVariable->isVariable()) {
                 throw new CompilerException("Returned values by functions can only be assigned to variant variables", $expression);
             }
 

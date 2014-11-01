@@ -21,6 +21,7 @@ namespace Zephir;
 
 use Zephir\Commands\CommandInterface;
 use Zephir\Commands\CommandGenerate;
+use Zephir\FileSystem\HardDisk as FileSystem;
 
 /**
  * Compiler
@@ -29,56 +30,73 @@ use Zephir\Commands\CommandGenerate;
  */
 class Compiler
 {
-    const VERSION = '0.4.2a';
+    const VERSION = '0.5.7a';
 
     /**
      * @var CompilerFile[]
      */
-    protected $_files = array();
-
-    /**
-     * @var ClassDefinition[]
-     */
-    protected $_definitions = array();
+    protected $files = array();
 
     /**
      * @var array|string[]
      */
-    protected $_compiledFiles = array();
+    protected $anonymousFiles = array();
 
-    protected $_constants = array();
+    /**
+     * @var ClassDefinition[]
+     */
+    protected $definitions = array();
 
-    protected $_globals = array();
+    /**
+     * @var array|string[]
+     */
+    protected $compiledFiles = array();
+
+    protected $constants = array();
+
+    /**
+     * Extension globals
+     *
+     * @var array
+     */
+    protected $globals = array();
+
+    /**
+     * External dependencies
+     *
+     * @var array
+     */
+    protected $externalDependencies = array();
 
     /**
      * @var StringsManager
      */
-    protected $_stringManager;
+    protected $stringManager;
 
     /**
      * @var Config
      */
-    protected $_config;
+    protected $config;
 
     /**
      * @var Logger
      */
-    protected $_logger;
+    protected $logger;
 
     /**
      * @var \ReflectionClass[]
      */
-    protected static $_internalDefinitions = array();
+    protected static $internalDefinitions = array();
 
     /**
      * @var boolean
      */
-    protected static $_loadedPrototypes = false;
+    protected static $loadedPrototypes = false;
 
     /**
      * @var array
      */
-    protected $_extraFiles = array();
+    protected $extraFiles = array();
 
     /**
      * Compiler constructor
@@ -88,9 +106,10 @@ class Compiler
      */
     public function __construct(Config $config, Logger $logger)
     {
-        $this->_config = $config;
-        $this->_logger = $logger;
-        $this->_stringManager = new StringsManager();
+        $this->config = $config;
+        $this->logger = $logger;
+        $this->stringManager = new StringsManager();
+        $this->fileSystem = new FileSystem();
     }
 
     /**
@@ -98,9 +117,10 @@ class Compiler
      *
      * @param string $filePath
      */
-    protected function _preCompile($filePath)
+    protected function preCompile($filePath)
     {
         if (preg_match('/\.zep$/', $filePath)) {
+
             $className = str_replace('/', '\\', $filePath);
             $className = preg_replace('/.zep$/', '', $className);
 
@@ -108,19 +128,21 @@ class Compiler
                 return ucfirst($i);
             }, explode('\\', $className)));
 
-            $this->_files[$className] = new CompilerFile($className, $filePath, $this->_config, $this->_logger);
-            $this->_files[$className]->preCompile();
+            $this->files[$className] = new CompilerFile($className, $filePath, $this->config, $this->logger);
+            $this->files[$className]->preCompile($this);
 
-            $this->_definitions[$className] = $this->_files[$className]->getClassDefinition();
+            $this->definitions[$className] = $this->files[$className]->getClassDefinition();
         }
     }
 
     /**
+     * Recursively pre-compiles all sources found in the given path
+     *
      * @param string $path
      *
      * @throws CompilerException
      */
-    protected function _recursivePreCompile($path)
+    protected function recursivePreCompile($path)
     {
         if (!is_string($path)) {
             throw new CompilerException('Invalid compilation path' . var_export($path, true));
@@ -130,7 +152,10 @@ class Compiler
          * Pre compile all files
          */
         $files = array();
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path), \RecursiveIteratorIterator::SELF_FIRST);
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
 
         /**
          * @var $item \SplFileInfo
@@ -143,22 +168,62 @@ class Compiler
 
         sort($files, SORT_STRING);
         foreach ($files as $file) {
-            $this->_preCompile($file);
+            $this->preCompile($file);
         }
+    }
+
+    /**
+     * Loads a class definition in an external dependency
+     *
+     * @param string $className
+     * @param string $location
+     */
+    public function loadExternalClass($className, $location)
+    {
+
+        $filePath = $location . DIRECTORY_SEPARATOR . strtolower(str_replace('\\', DIRECTORY_SEPARATOR, $className)) . '.zep';
+        if (!file_exists($filePath)) {
+            throw new CompilerException("Class '$className' must be located at '$filePath' but this file is missing");
+        }
+
+        /**
+         * Fix the class name
+         */
+        $className = join('\\', array_map(function ($i) {
+            return ucfirst($i);
+        }, explode('\\', $className)));
+
+        $this->files[$className] = new CompilerFile($className, $filePath, $this->config, $this->logger);
+        $this->files[$className]->setIsExternal(true);
+        $this->files[$className]->preCompile($this);
+
+        $this->definitions[$className] = $this->files[$className]->getClassDefinition();
     }
 
     /**
      * Allows to check if a class is part of the compiled extension
      *
      * @param string $className
-     *
      * @return boolean
      */
     public function isClass($className)
     {
-        foreach ($this->_definitions as $key => $value) {
+
+        foreach ($this->definitions as $key => $value) {
             if (!strcasecmp($key, $className)) {
                 if ($value->getType() == 'class') {
+                    return true;
+                }
+            }
+        }
+
+        /**
+         * Try to autoload the class from an external dependency
+         */
+        if (count($this->externalDependencies)) {
+            foreach ($this->externalDependencies as $namespace => $location) {
+                if (preg_match('#^' . $namespace . '\\\\#i', $className)) {
+                    $this->loadExternalClass($className, $location);
                     return true;
                 }
             }
@@ -176,9 +241,21 @@ class Compiler
      */
     public function isInterface($className)
     {
-        foreach ($this->_definitions as $key => $value) {
+        foreach ($this->definitions as $key => $value) {
             if (!strcasecmp($key, $className)) {
                 if ($value->getType() == 'interface') {
+                    return true;
+                }
+            }
+        }
+
+        /**
+         * Try to autoload the class from an external dependency
+         */
+        if (count($this->externalDependencies)) {
+            foreach ($this->externalDependencies as $namespace => $location) {
+                if (preg_match('#^' . $namespace . '\\\\#i', $className)) {
+                    $this->loadExternalClass($className, $location);
                     return true;
                 }
             }
@@ -220,13 +297,25 @@ class Compiler
      */
     public function getClassDefinition($className)
     {
-        foreach ($this->_definitions as $key => $value) {
+        foreach ($this->definitions as $key => $value) {
             if (!strcasecmp($key, $className)) {
                 return $value;
             }
         }
 
         return false;
+    }
+
+    /**
+     * Inserts an anonymous class definition in the compiler
+     *
+     * @param CompilerFileAnonymous $file
+     * @param ClassDefinition $classDefinition
+     */
+    public function addClassDefinition(CompilerFileAnonymous $file, ClassDefinition $classDefinition)
+    {
+        $this->definitions[$classDefinition->getCompleteName()] = $classDefinition;
+        $this->anonymousFiles[$classDefinition->getCompleteName()] = $file;
     }
 
     /**
@@ -238,12 +327,12 @@ class Compiler
      */
     public function getInternalClassDefinition($className)
     {
-        if (!isset(self::$_internalDefinitions[$className])) {
+        if (!isset(self::$internalDefinitions[$className])) {
             $reflection = new \ReflectionClass($className);
-            self::$_internalDefinitions[$className] = ClassDefinition::buildFromReflection($reflection);
+            self::$internalDefinitions[$className] = ClassDefinition::buildFromReflection($reflection);
         }
 
-        return self::$_internalDefinitions[$className];
+        return self::$internalDefinitions[$className];
     }
 
     /**
@@ -256,7 +345,7 @@ class Compiler
      *
      * @return bool
      */
-    protected function _recursiveProcess($src, $dest, $pattern = null, $callback = "copy")
+    protected function recursiveProcess($src, $dest, $pattern = null, $callback = "copy")
     {
         $success = true;
         $iterator = new \DirectoryIterator($src);
@@ -271,7 +360,7 @@ class Compiler
                     if (!is_dir($dest . '/' . $fileName)) {
                         mkdir($dest . '/' . $fileName, 0755, true);
                     }
-                    $this->_recursiveProcess($pathName, $dest . '/' . $fileName, $pattern, $callback);
+                    $this->recursiveProcess($pathName, $dest . '/' . $fileName, $pattern, $callback);
                 }
             } else {
                 if (!$pattern || ($pattern && preg_match($pattern, $fileName) === 1)) {
@@ -294,7 +383,7 @@ class Compiler
      *
      * @throws Exception
      */
-    protected function _loadConstantsSources($constantsSources)
+    protected function loadConstantsSources($constantsSources)
     {
         foreach ($constantsSources as $constantsSource) {
 
@@ -304,11 +393,11 @@ class Compiler
 
             foreach (file($constantsSource) as $line) {
                 if (preg_match('/^\#define[ \t]+([A-Z0-9\_]+)[ \t]+([0-9]+)/', $line, $matches)) {
-                    $this->_constants[$matches[1]] = array('int', $matches[2]);
+                    $this->constants[$matches[1]] = array('int', $matches[2]);
                     continue;
                 }
                 if (preg_match('/^\#define[ \t]+([A-Z0-9\_]+)[ \t]+(\'(.){1}\')/', $line, $matches)) {
-                    $this->_constants[$matches[1]] = array('char', $matches[3]);
+                    $this->constants[$matches[1]] = array('char', $matches[3]);
                 }
             }
         }
@@ -323,7 +412,7 @@ class Compiler
      */
     public function isConstant($name)
     {
-        return isset($this->_constants[$name]);
+        return isset($this->constants[$name]);
     }
 
     /**
@@ -333,16 +422,16 @@ class Compiler
      */
     public function getConstant($name)
     {
-        return $this->_constants[$name];
+        return $this->constants[$name];
     }
 
     /**
      * @param array $globals
      */
-    public function _setExtensionGlobals($globals)
+    public function setExtensionGlobals($globals)
     {
         foreach ($globals as $key => $value) {
-            $this->_globals[$key] = $value;
+            $this->globals[$key] = $value;
         }
     }
 
@@ -355,7 +444,7 @@ class Compiler
      */
     public function isExtensionGlobal($name)
     {
-        return isset($this->_globals[$name]);
+        return isset($this->globals[$name]);
     }
 
     /**
@@ -367,16 +456,16 @@ class Compiler
      */
     public function getExtensionGlobal($name)
     {
-        return $this->_globals[$name];
+        return $this->globals[$name];
     }
 
     /**
      * @return string
      * @throws Exception
      */
-    protected function _checkDirectory()
+    protected function checkDirectory()
     {
-        $namespace = $this->_config->get('namespace');
+        $namespace = $this->config->get('namespace');
         if (!$namespace) {
             throw new Exception("Extension namespace cannot be loaded");
         }
@@ -385,15 +474,15 @@ class Compiler
             throw new Exception("Extension namespace is invalid");
         }
 
-        if (!is_dir('.temp')) {
-            mkdir('.temp');
+        if (!$this->fileSystem->isInitialized()) {
+            $this->fileSystem->initialize();
         }
 
-        if (!file_exists('.temp/' . self::VERSION)) {
-            if (file_exists('ext/Makefile')) {
-                $this->_logger->output('Zephir version has changed, use "zephir fullclean" to perform a full clean of the project');
+        if (!$this->fileSystem->exists(self::VERSION)) {
+            if (!$this->checkIfPhpized()) {
+                $this->logger->output('Zephir version has changed, use "zephir fullclean" to perform a full clean of the project');
             }
-            mkdir('.temp/' . self::VERSION);
+            $this->fileSystem->makeDirectory(self::VERSION);
         }
 
         return $namespace;
@@ -406,28 +495,52 @@ class Compiler
      */
     protected function getGccVersion()
     {
-        if (file_exists('.temp/' . self::VERSION . '/gcc-version')) {
-            return file_get_contents('.temp/' . self::VERSION . '/gcc-version');
+
+        if ($this->fileSystem->exists(self::VERSION . '/gcc-version')) {
+            return $this->fileSystem->read(self::VERSION . '/gcc-version');
         }
 
-        system('gcc -v 2> .temp/' . self::VERSION . '/gcc-version-temp');
-        $lines = file('.temp/' . self::VERSION . '/gcc-version-temp');
+        $this->fileSystem->system('gcc -v', 'stderr', self::VERSION . '/gcc-version-temp');
+        $lines = $this->fileSystem->file(self::VERSION . '/gcc-version-temp');
+
         foreach ($lines as $line) {
             if (strpos($line, 'LLVM') !== false) {
-                file_put_contents('.temp/' . self::VERSION . '/gcc-version', '4.8.0');
-
+                $this->fileSystem->write(self::VERSION . '/gcc-version', '4.8.0');
                 return '4.8.0';
             }
         }
 
         $lastLine = $lines[count($lines) - 1];
         if (preg_match('/[0-9]+\.[0-9]+\.[0-9]+/', $lastLine, $matches)) {
-            file_put_contents('.temp/' . self::VERSION . '/gcc-version', $matches[0]);
-
+            $this->fileSystem->write(self::VERSION . '/gcc-version', $matches[0]);
             return $matches[0];
         }
 
         return '0.0.0';
+    }
+
+    /**
+     * Returns GCC flags for current compilation
+     *
+     * @param boolean $development
+     * @return string
+     */
+    public function getGccFlags($development = false)
+    {
+        $gccFlags = getenv('CFLAGS');
+        if (!is_string($gccFlags)) {
+            if (!$development) {
+                $gccVersion = $this->getGccVersion();
+                if (version_compare($gccVersion, '4.6.0', '>=')) {
+                    $gccFlags = '-O2 -fvisibility=hidden -Wparentheses -flto -DZEPHIR_RELEASE=1';
+                } else {
+                    $gccFlags = '-O2 -fvisibility=hidden -Wparentheses -DZEPHIR_RELEASE=1';
+                }
+            } else {
+                $gccFlags = '-O0 -g3';
+            }
+        }
+        return $gccFlags;
     }
 
     /**
@@ -451,11 +564,11 @@ class Compiler
          * Tell the user the name could be reserved by another extension
          */
         if (extension_loaded($namespace)) {
-            $this->_logger->output('This extension can have conflicts with an existing loaded extension');
+            $this->logger->output('This extension can have conflicts with an existing loaded extension');
         }
 
-        $this->_config->set('namespace', $namespace);
-        $this->_config->set('name', $namespace);
+        $this->config->set('namespace', $namespace);
+        $this->config->set('name', $namespace);
 
         if (!is_dir($namespace)) {
             mkdir($namespace);
@@ -474,12 +587,13 @@ class Compiler
         }
 
         // Copy the latest kernel files
-        $this->_recursiveProcess(realpath(__DIR__ . '/../ext/kernel'), 'ext/kernel');
+        $this->recursiveProcess(realpath(__DIR__ . '/../ext/kernel'), 'ext/kernel');
     }
 
     /**
-     * @param CommandInterface $command
+     * Generates the C sources from Zephir without compiling them
      *
+     * @param CommandInterface $command
      * @return bool
      * @throws Exception
      */
@@ -488,47 +602,72 @@ class Compiler
         /**
          * Get global namespace
          */
-        $namespace = $this->_checkDirectory();
+        $namespace = $this->checkDirectory();
+
+        /**
+         * Check whether there are external dependencies
+         */
+        $externalDependencies = $this->config->get('external-dependencies');
+        if (is_array($externalDependencies)) {
+            foreach ($externalDependencies as $dependencyNs => $location) {
+
+                if (!file_exists($location)) {
+                    throw new CompilerException('Location of dependency "' . $dependencyNs . '" does not exist. Check the config.json for more information');
+                }
+
+                $this->addExternalDependency($dependencyNs, $location);
+            }
+        }
+
+        /**
+         * Check if there are module/request/global destructors
+         */
+        $destructors = $this->config->get('destructors');
+        if (is_array($destructors)) {
+            $invokeDestructors = $this->processDestructors($destructors);
+            $includes = $invokeDestructors[0];
+            $destructors = $invokeDestructors[1];
+        }
 
         /**
          * Round 1. pre-compile all files in memory
          */
-        $this->_recursivePreCompile(str_replace('\\', DIRECTORY_SEPARATOR, $namespace));
-        if (!count($this->_files)) {
+        $this->recursivePreCompile(str_replace('\\', DIRECTORY_SEPARATOR, $namespace));
+        if (!count($this->files)) {
             throw new Exception("Zephir files to compile weren't found");
         }
 
         /**
          * Round 2. Check 'extends' and 'implements' dependencies
          */
-        foreach ($this->_files as $compileFile) {
+        foreach ($this->files as $compileFile) {
             $compileFile->checkDependencies($this);
         }
 
         /**
          * Convert C-constants into PHP constants
          */
-        $constantsSources = $this->_config->get('constants-sources');
+        $constantsSources = $this->config->get('constants-sources');
         if (is_array($constantsSources)) {
-            $this->_loadConstantsSources($constantsSources);
+            $this->loadConstantsSources($constantsSources);
         }
 
         /**
          * Set extension globals
          */
-        $globals = $this->_config->get('globals');
+        $globals = $this->config->get('globals');
         if (is_array($globals)) {
-            $this->_setExtensionGlobals($globals);
+            $this->setExtensionGlobals($globals);
         }
 
         /**
          * Load function optimizers
          */
-        if (self::$_loadedPrototypes == false) {
+        if (self::$loadedPrototypes == false) {
 
             FunctionCall::addOptimizerDir(ZEPHIRPATH . 'Library/Optimizers/FunctionCall');
 
-            $optimizerDirs = $this->_config->get('optimizer-dirs');
+            $optimizerDirs = $this->config->get('optimizer-dirs');
             if (is_array($optimizerDirs)) {
                 foreach ($optimizerDirs as $directory) {
                     FunctionCall::addOptimizerDir(realpath($directory));
@@ -551,18 +690,43 @@ class Compiler
                 }
             }
 
-            self::$_loadedPrototypes = true;
+            self::$loadedPrototypes = true;
         }
 
         /**
-         * Round 3. compile all files to C sources
+         * Round 3. Compile all files to C sources
          */
         $files = array();
 
         $hash = "";
-        foreach ($this->_files as $compileFile) {
+        foreach ($this->files as $compileFile) {
 
-            $compileFile->compile($this, $this->_stringManager);
+            /**
+             * Only compile classes in the local extension, ignore external classes
+             */
+            if (!$compileFile->isExternal()) {
+
+                $compileFile->compile($this, $this->stringManager);
+                $compiledFile = $compileFile->getCompiledFile();
+
+                $methods = array();
+                $classDefinition = $compileFile->getClassDefinition();
+                foreach ($classDefinition->getMethods() as $method) {
+                    $methods[] = '[' . $method->getName() . ':' . join('-', $method->getVisibility()) . ']';
+                }
+
+                $files[] = $compiledFile;
+
+                $hash .= '|' . $compiledFile . ':' . $classDefinition->getClassEntry() . '[' . join('|', $methods) . ']';
+            }
+        }
+
+        /**
+         * Round 3.2. Compile anonymous classes
+         */
+        foreach ($this->anonymousFiles as $compileFile) {
+
+            $compileFile->compile($this, $this->stringManager);
             $compiledFile = $compileFile->getCompiledFile();
 
             $methods = array();
@@ -575,37 +739,39 @@ class Compiler
 
             $hash .= '|' . $compiledFile . ':' . $classDefinition->getClassEntry() . '[' . join('|', $methods) . ']';
         }
+
         $hash = md5($hash);
+        $this->compiledFiles = $files;
 
-        $this->_compiledFiles = $files;
-
-        /* Load extra C-sources */
-        $extraSources = $this->_config->get('extra-sources');
+        /**
+         * Round 3.3. Load extra C-sources
+         */
+        $extraSources = $this->config->get('extra-sources');
         if (is_array($extraSources)) {
-            $this->_extraFiles = $extraSources;
+            $this->extraFiles = $extraSources;
         } else {
-            $this->_extraFiles = array();
+            $this->extraFiles = array();
         }
 
         /**
          * Round 4. Create config.m4 and config.w32 files / Create project.c and project.h files
          */
-        $namespace = str_replace('\\', '_', $namespace);
-        $needConfigure = $this->createConfigFiles($namespace);
+        $namespace      = str_replace('\\', '_', $namespace);
+        $needConfigure  = $this->createConfigFiles($namespace);
         $needConfigure |= $this->createProjectFiles($namespace);
-        $needConfigure |= $this->checkIfPhpized($namespace);
+        $needConfigure |= $this->checkIfPhpized();
 
         /**
          * When a new file is added or removed we need to run configure again
          */
         if (!($command instanceof CommandGenerate)) {
-            if (!file_exists('.temp/' . self::VERSION . '/compiled-files-sum')) {
+            if (!$this->fileSystem->exists(self::VERSION . '/compiled-files-sum')) {
                 $needConfigure = true;
-                file_put_contents('.temp/' . self::VERSION . '/compiled-files-sum', $hash);
+                $this->fileSystem->write(self::VERSION . '/compiled-files-sum', $hash);
             } else {
-                if (file_get_contents('.temp/' . self::VERSION . '/compiled-files-sum') != $hash) {
+                if ($this->fileSystem->read(self::VERSION . '/compiled-files-sum') != $hash) {
                     $needConfigure = true;
-                    file_put_contents('.temp/' . self::VERSION . '/compiled-files-sum', $hash);
+                    $this->fileSystem->write(self::VERSION . '/compiled-files-sum', $hash);
                 }
             }
         }
@@ -613,9 +779,9 @@ class Compiler
         /**
          * Round 5. Generate the concatenation
          */
-        $this->_stringManager->genConcatCode();
+        $this->stringManager->genConcatCode();
 
-        if ($this->_config->get('stubs-run-after-generate', 'stubs')) {
+        if ($this->config->get('stubs-run-after-generate', 'stubs')) {
             $this->stubs($command, true);
         }
 
@@ -626,48 +792,60 @@ class Compiler
      * Compiles the extension without installing it
      *
      * @param CommandInterface $command
+     * @param boolean $development
      */
-    public function compile(CommandInterface $command)
+    public function compile(CommandInterface $command, $development = false)
     {
         /**
          * Get global namespace
          */
-        $namespace = str_replace('\\', '_', $this->_checkDirectory());
+        $namespace = str_replace('\\', '_', $this->checkDirectory());
         $needConfigure = $this->generate($command);
         if ($needConfigure) {
 
             exec('cd ext && make clean && phpize --clean', $output, $exit);
 
-            $this->_logger->output('Preparing for PHP compilation...');
+            $this->logger->output('Preparing for PHP compilation...');
             exec('cd ext && phpize', $output, $exit);
 
-            $this->_logger->output('Preparing configuration file...');
+            $this->logger->output('Preparing configuration file...');
 
-            $gccFlags = getenv('CFLAGS');
-            if (!is_string($gccFlags)) {
-                $gccVersion = $this->getGccVersion();
-                if (version_compare($gccVersion, '4.6.0', '>=')) {
-                    $gccFlags = '-O2 -fvisibility=hidden -Wparentheses -flto';
-                } else {
-                    $gccFlags = '-O2 -fvisibility=hidden -Wparentheses';
-                }
-            }
+            $gccFlags = $this->getGccFlags($development);
 
             exec(
                 'cd ext && export CC="gcc" && export CFLAGS="' . $gccFlags . '" && ./configure --enable-' . $namespace
             );
         }
-        $this->_logger->output('Compiling...');
-        $verbose = ($this->_config->get('verbose') ? true : false);
-        if ($verbose) {
-            passthru('cd ext && make -j2', $exit);
-        } else {
-            exec('cd ext && make --silent -j2', $output, $exit);
-        }
+
+        $currentDir = getcwd();
+        $this->logger->output('Compiling...');
+        exec('cd ext && (make --silent -j2 2>' . $currentDir . '/compile-errors.log 1>' . $currentDir . '/compile.log)', $output, $exit);
     }
 
     /**
-     * Generate ide stubs
+     * Generate a HTML API
+     *
+     * @param CommandInterface $command
+     * @param bool             $fromGenerate
+     */
+    public function api(CommandInterface $command, $fromGenerate = false)
+    {
+        if (!$fromGenerate) {
+            $this->generate($command);
+        }
+
+        $this->logger->output('Generating API...');
+        $stubsGenerator = new Api\Generator($this->files, $this->config);
+
+        $path = $this->config->get('path', 'stubs');
+        $path = str_replace('%version%', $this->config->get('version'), $path);
+        $path = str_replace('%namespace%', ucfirst($this->config->get('namespace')), $path);
+
+        $stubsGenerator->generate($path);
+    }
+
+    /**
+     * Generate IDE stubs
      *
      * @param CommandInterface $command
      * @param bool             $fromGenerate
@@ -677,11 +855,13 @@ class Compiler
         if (!$fromGenerate) {
             $this->generate($command);
         }
-        $this->_logger->output('Generating stubs...');
-        $stubsGenerator = new Stubs\Generator($this->_files, $this->_config);
-        $path = $this->_config->get('path', 'stubs');
-        $path = str_replace('%version%', $this->_config->get('version'), $path);
-        $path = str_replace('%namespace%', ucfirst($this->_config->get('namespace')), $path);
+
+        $this->logger->output('Generating stubs...');
+        $stubsGenerator = new Stubs\Generator($this->files, $this->config);
+
+        $path = $this->config->get('path', 'stubs');
+        $path = str_replace('%version%', $this->config->get('version'), $path);
+        $path = str_replace('%namespace%', ucfirst($this->config->get('namespace')), $path);
 
         $stubsGenerator->generate($path);
     }
@@ -690,37 +870,39 @@ class Compiler
      * Compiles and installs the extension
      *
      * @param CommandInterface $command
+     * @param boolean $development
      *
      * @throws Exception
      */
-    public function install(CommandInterface $command)
+    public function install(CommandInterface $command, $development = false)
     {
         /**
          * Get global namespace
          */
-        $namespace = str_replace('\\', '_', $this->_checkDirectory());
+        $namespace = str_replace('\\', '_', $this->checkDirectory());
 
-        $this->compile($command);
+        @unlink("compile.log");
+        @unlink("compile-errors.log");
+        @unlink("ext/modules/" . $namespace . ".so");
 
-        $this->_logger->output('Installing...');
+        $this->compile($command, $development);
 
-        $gccFlags = getenv('CFLAGS');
-        if (!is_string($gccFlags)) {
-            $gccVersion = $this->getGccVersion();
-            if (version_compare($gccVersion, '4.6.0', '>=')) {
-                $gccFlags = '-O2 -fvisibility=hidden -Wparentheses -flto';
-            } else {
-                $gccFlags = '-O2 -fvisibility=hidden -Wparentheses';
-            }
+        $this->logger->output('Installing...');
+
+        $gccFlags = $this->getGccFlags($development);
+
+        $currentDir = getcwd();
+        exec('(cd ext && export CC="gcc" && export CFLAGS="' . $gccFlags . '" && sudo make install 2>>' . $currentDir . '/compile-errors.log 1>>' . $currentDir . '/compile.log)', $output, $exit);
+
+        if (!file_exists("ext/modules/" . $namespace . ".so")) {
+            throw new CompilerException("Internal extension compilation failed. Check compile-errors.log for more information");
         }
 
-        exec('(cd ext && export CC="gcc" && export CFLAGS="' . $gccFlags . '" && sudo make --silent install) > /dev/null 2>&1', $output, $exit);
-
-        $this->_logger->output('Extension installed!');
+        $this->logger->output('Extension installed!');
         if (!extension_loaded($namespace)) {
-            $this->_logger->output('Add extension=' . $namespace . '.so to your php.ini');
+            $this->logger->output('Add extension=' . $namespace . '.so to your php.ini');
         }
-        $this->_logger->output('Don\'t forget to restart your web server');
+        $this->logger->output('Don\'t forget to restart your web server');
     }
 
     /**
@@ -733,9 +915,9 @@ class Compiler
         /**
          * Get global namespace
          */
-        $namespace = $this->_checkDirectory();
+        $namespace = $this->checkDirectory();
 
-        $this->_logger->output('Running tests...');
+        $this->logger->output('Running tests...');
         system('export CC="gcc" && export CFLAGS="-O0 -g" && export NO_INTERACTION=1 && cd ext && make test', $exit);
     }
 
@@ -756,7 +938,7 @@ class Compiler
      */
     public function fullClean(CommandInterface $command)
     {
-        system('rm -fr .temp');
+        $this->fileSystem->clean();
         system('cd ext && sudo make clean 1> /dev/null');
         system('cd ext && sudo phpize --clean 1> /dev/null');
     }
@@ -768,7 +950,17 @@ class Compiler
      */
     public function build(CommandInterface $command)
     {
-        $this->install($command);
+        $this->install($command, false);
+    }
+
+    /**
+     * Compiles and installs the extension in development mode (debug symbols and no optimizations)
+     *
+     * @param CommandInterface $command
+     */
+    public function buildDev(CommandInterface $command)
+    {
+        $this->install($command, true);
     }
 
     /**
@@ -779,7 +971,7 @@ class Compiler
      *
      * @return boolean
      */
-    protected function _checkKernelFile($src, $dst)
+    protected function checkKernelFile($src, $dst)
     {
         if (strstr($src, 'ext/kernel/concat.') !== false) {
             return true;
@@ -799,11 +991,11 @@ class Compiler
      */
     protected function checkKernelFiles()
     {
-        $configured = $this->_recursiveProcess(realpath(__DIR__ . '/../ext/kernel'), 'ext/kernel', '@^.*\.c|h$@', array($this, '_checkKernelFile'));
+        $configured = $this->recursiveProcess(realpath(__DIR__ . '/../ext/kernel'), 'ext/kernel', '@^.*\.c|h$@', array($this, 'checkKernelFile'));
         if (!$configured) {
-            $this->_logger->output('Copying new kernel files...');
+            $this->logger->output('Copying new kernel files...');
             exec("rm -fr ext/kernel/*");
-            $this->_recursiveProcess(realpath(__DIR__ . '/../ext/kernel'), 'ext/kernel', '@^.*\.c|h$@');
+            $this->recursiveProcess(realpath(__DIR__ . '/../ext/kernel'), 'ext/kernel', '@^.*\.c|h$@');
         }
 
         return !$configured;
@@ -823,16 +1015,37 @@ class Compiler
         if (empty($content)) {
             throw new Exception("Template config.m4 doesn't exist");
         }
+
+        if ($project == 'zend') {
+            $safeProject = 'zend_';
+        } else {
+            $safeProject = $project;
+        }
+
         $compiledFiles = array_map(function ($file) {
             return str_replace('.c', '.zep.c', $file);
-        }, $this->_compiledFiles);
+        }, $this->compiledFiles);
+
+        /**
+         * If export-classes is enabled all headers are copied to include/php/ext
+         */
+        $exportClasses = $this->config->get('export-classes', 'extra');
+        if ($exportClasses) {
+            $compiledHeaders = array_map(function ($file) {
+                return str_replace('.c', '.zep.h', $file);
+            }, $this->compiledFiles);
+        } else {
+            $compiledHeaders = array('php_' . strtoupper($project) . '.h');
+        }
 
         $toReplace = array(
+            '%PROJECT_LOWER_SAFE%'   => strtolower($safeProject),
             '%PROJECT_LOWER%'        => strtolower($project),
             '%PROJECT_UPPER%'        => strtoupper($project),
             '%PROJECT_CAMELIZE%'     => ucfirst($project),
             '%FILES_COMPILED%'       => implode("\n\t", $compiledFiles),
-            '%EXTRA_FILES_COMPILED%' => implode("\n\t", $this->_extraFiles),
+            '%HEADERS_COMPILED%'     => implode(" ", $compiledHeaders),
+            '%EXTRA_FILES_COMPILED%' => implode("\n\t", $this->extraFiles),
         );
 
         foreach ($toReplace as $mark => $replace) {
@@ -850,7 +1063,7 @@ class Compiler
         }
 
         $toReplace = array(
-            '%PROJECT_LOWER%' => strtolower($project)
+            '%PROJECT_LOWER_SAFE%' => strtolower($safeProject)
         );
 
         foreach ($toReplace as $mark => $replace) {
@@ -868,7 +1081,7 @@ class Compiler
         }
 
         $toReplace = array(
-            '%PROJECT_LOWER%' => strtolower($project)
+            '%PROJECT_LOWER_SAFE%' => strtolower($safeProject)
         );
 
         foreach ($toReplace as $mark => $replace) {
@@ -948,7 +1161,7 @@ class Compiler
         /**
          * Generate the extensions globals declaration
          */
-        $globals = $this->_config->get('globals');
+        $globals = $this->config->get('globals');
         if (is_array($globals)) {
 
             $structures = array();
@@ -995,14 +1208,18 @@ class Compiler
              * Process single variables
              */
             foreach ($variables as $name => $global) {
+
                 if (preg_match('/^[0-9a-zA-Z\_]$/', $name)) {
                     throw new Exception("Extension global variable name: '" . $name . "' contains invalid characters");
                 }
+
                 if (!isset($global['default'])) {
                     throw new Exception("Extension global variable name: '" . $name . "' contains invalid characters");
                 }
+
                 $type = $global['type'];
                 switch ($global['type']) {
+
                     case 'boolean':
                     case 'bool':
                         $type = 'zend_bool';
@@ -1012,6 +1229,7 @@ class Compiler
                             $globalsDefault .= "\t" . 'zephir_globals->' . $name . ' = 0;' . PHP_EOL;
                         }
                         break;
+
                     case 'int':
                     case 'uint':
                     case 'long':
@@ -1019,11 +1237,13 @@ class Compiler
                         $globalsDefault
                             .= "\t" . 'zephir_globals->' . $name . ' = ' . $global['default'] . ';' . PHP_EOL;
                         break;
+
                     case 'char':
                     case 'uchar':
                         $globalsDefault
                             .= "\t" . 'zephir_globals->' . $name . ' = \'' . $global['default'] . '\'";' . PHP_EOL;
                         break;
+
                     default:
                         throw new Exception("Unknown type '" . $global['type'] . "'");
                 }
@@ -1066,12 +1286,14 @@ class Compiler
 
     /**
      * Generates phpinfo() sections showing information about the extension
+     *
+     * @return string
      */
     public function processExtensionInfo()
     {
         $phpinfo = '';
 
-        $info = $this->_config->get('info');
+        $info = $this->config->get('info');
         if (is_array($info)) {
             foreach ($info as $table) {
                 $phpinfo .= "\t" . 'php_info_print_table_start();' . PHP_EOL;
@@ -1099,7 +1321,42 @@ class Compiler
     }
 
     /**
-     * Create project.c and project.h by compiled files to test extension
+     * Process extension destructors
+     *
+     * @param array $destructors
+     * @return array
+     */
+    public function processDestructors(array $destructors)
+    {
+        $codes = array();
+        $includes = array();
+
+        /**
+         * Destructors thrown when the request is being shutdown
+         */
+        if (isset($destructors['request'])) {
+            foreach ($destructors['request'] as $destructor) {
+                $codes[] = $destructor['code'] . ';';
+                $includes[] = "#include \"" . $destructor['include'] . "\"";
+            }
+        }
+
+        return array(join(PHP_EOL, $includes), join("\n\t", $codes));
+    }
+
+    /**
+     * Adds an external dependency to the compiler
+     *
+     * @param string $namespace
+     * @param string $location
+     */
+    public function addExternalDependency($namespace, $location)
+    {
+        $this->externalDependencies[$namespace] = $location;
+    }
+
+    /**
+     * Create project.c and project.h according to the current extension
      *
      * @param string $project
      *
@@ -1118,7 +1375,9 @@ class Compiler
             throw new Exception("Template project.c doesn't exist");
         }
 
-        $files = $this->_files;
+        $includes = '';
+        $destructors = '';
+        $files = array_merge($this->files, $this->anonymousFiles);
 
         /**
          * Round 1. Calculate the dependency rank
@@ -1127,9 +1386,11 @@ class Compiler
          * have more weight
          */
         foreach ($files as $file) {
-            $classDefinition = $file->getClassDefinition();
-            if ($classDefinition) {
-                $classDefinition->calculateDependencyRank();
+            if (!$file->isExternal()) {
+                $classDefinition = $file->getClassDefinition();
+                if ($classDefinition) {
+                    $classDefinition->calculateDependencyRank();
+                }
             }
         }
 
@@ -1137,9 +1398,11 @@ class Compiler
          * Round 1.5 Make a second pass to ensure classes will have the correct weight
          */
         foreach ($files as $file) {
-            $classDefinition = $file->getClassDefinition();
-            if ($classDefinition) {
-                $classDefinition->calculateDependencyRank();
+            if (!$file->isExternal()) {
+                $classDefinition = $file->getClassDefinition();
+                if ($classDefinition) {
+                    $classDefinition->calculateDependencyRank();
+                }
             }
         }
 
@@ -1153,23 +1416,25 @@ class Compiler
          * Round 2. Generate the ZEPHIR_INIT calls according to the dependency rank
          */
         foreach ($files as $file) {
-            $classDefinition = $file->getClassDefinition();
-            if ($classDefinition) {
-                $dependencyRank = $classDefinition->getDependencyRank();
-                if ($classDefinition->getType() == 'class') {
-                    if (!isset($classInits[$dependencyRank])) {
-                        $classEntries[$dependencyRank] = array();
-                        $classInits[$dependencyRank] = array();
+            if (!$file->isExternal()) {
+                $classDefinition = $file->getClassDefinition();
+                if ($classDefinition) {
+                    $dependencyRank = $classDefinition->getDependencyRank();
+                    if ($classDefinition->getType() == 'class') {
+                        if (!isset($classInits[$dependencyRank])) {
+                            $classEntries[$dependencyRank] = array();
+                            $classInits[$dependencyRank] = array();
+                        }
+                        $classEntries[$dependencyRank][] = 'zend_class_entry *' . $classDefinition->getClassEntry() . ';';
+                        $classInits[$dependencyRank][] = 'ZEPHIR_INIT(' . $classDefinition->getCNamespace() . '_' . $classDefinition->getName() . ');';
+                    } else {
+                        if (!isset($interfaceInits[$dependencyRank])) {
+                            $interfaceEntries[$dependencyRank] = array();
+                            $interfaceInits[$dependencyRank] = array();
+                        }
+                        $interfaceEntries[$dependencyRank][] = 'zend_class_entry *' . $classDefinition->getClassEntry() . ';';
+                        $interfaceInits[$dependencyRank][] = 'ZEPHIR_INIT(' . $classDefinition->getCNamespace() . '_' . $classDefinition->getName() . ');';
                     }
-                    $classEntries[$dependencyRank][] = 'zend_class_entry *' . $classDefinition->getClassEntry() . ';';
-                    $classInits[$dependencyRank][] = 'ZEPHIR_INIT(' . $classDefinition->getCNamespace() . '_' . $classDefinition->getName() . ');';
-                } else {
-                    if (!isset($interfaceInits[$dependencyRank])) {
-                        $interfaceEntries[$dependencyRank] = array();
-                        $interfaceInits[$dependencyRank] = array();
-                    }
-                    $interfaceEntries[$dependencyRank][] = 'zend_class_entry *' . $classDefinition->getClassEntry() . ';';
-                    $interfaceInits[$dependencyRank][] = 'ZEPHIR_INIT(' . $classDefinition->getCNamespace() . '_' . $classDefinition->getName() . ');';
                 }
             }
         }
@@ -1208,19 +1473,38 @@ class Compiler
          */
         list($globalCode, $globalStruct, $globalsDefault) = $this->processExtensionGlobals($project);
 
+        if ($project == 'zend') {
+            $safeProject = 'zend_';
+        } else {
+            $safeProject = $project;
+        }
+
         /**
          * Round 4. Process extension info
          */
         $phpInfo = $this->processExtensionInfo();
 
+        /**
+         * Check if there are module/request/global destructors
+         */
+        $destructors = $this->config->get('destructors');
+        if (is_array($destructors)) {
+            $invokeDestructors = $this->processDestructors($destructors);
+            $includes = $invokeDestructors[0];
+            $destructors = $invokeDestructors[1];
+        }
+
         $toReplace = array(
-            '%PROJECT_LOWER%'    => strtolower($project),
-            '%PROJECT_UPPER%'    => strtoupper($project),
-            '%PROJECT_CAMELIZE%' => ucfirst($project),
-            '%CLASS_ENTRIES%'    => implode(PHP_EOL, array_merge($completeInterfaceEntries, $completeClassEntries)),
-            '%CLASS_INITS%'      => implode(PHP_EOL . "\t", array_merge($completeInterfaceInits, $completeClassInits)),
-            '%INIT_GLOBALS%'     => $globalsDefault,
-            '%EXTENSION_INFO%'   => $phpInfo
+            '%PROJECT_LOWER_SAFE%'  => strtolower($safeProject),
+            '%PROJECT_LOWER%'       => strtolower($project),
+            '%PROJECT_UPPER%'       => strtoupper($project),
+            '%PROJECT_CAMELIZE%'    => ucfirst($project),
+            '%CLASS_ENTRIES%'       => implode(PHP_EOL, array_merge($completeInterfaceEntries, $completeClassEntries)),
+            '%CLASS_INITS%'         => implode(PHP_EOL . "\t", array_merge($completeInterfaceInits, $completeClassInits)),
+            '%INIT_GLOBALS%'        => $globalsDefault,
+            '%EXTENSION_INFO%'      => $phpInfo,
+            '%EXTRA_INCLUDES%'      => $includes,
+            '%DESTRUCTORS%'         => $destructors
         );
         foreach ($toReplace as $mark => $replace) {
             $content = str_replace($mark, $replace, $content);
@@ -1229,7 +1513,7 @@ class Compiler
         /**
          * Round 5. Generate and place the entry point of the project
          */
-        Utils::checkAndWriteIfNeeded($content, 'ext/' . $project . '.c');
+        Utils::checkAndWriteIfNeeded($content, 'ext/' . $safeProject . '.c');
         unset($content);
 
         /**
@@ -1241,7 +1525,7 @@ class Compiler
         }
 
         $includeHeaders = array();
-        foreach ($this->_compiledFiles as $file) {
+        foreach ($this->compiledFiles as $file) {
             if ($file) {
                 $fileH = str_replace(".c", ".zep.h", $file);
                 $include = '#include "' . $fileH . '"';
@@ -1257,7 +1541,7 @@ class Compiler
             $content = str_replace($mark, $replace, $content);
         }
 
-        Utils::checkAndWriteIfNeeded($content, 'ext/' . $project . '.h');
+        Utils::checkAndWriteIfNeeded($content, 'ext/' . $safeProject . '.h');
         unset($content);
 
         /**
@@ -1269,13 +1553,14 @@ class Compiler
         }
 
         $toReplace = array(
+            '%PROJECT_LOWER_SAFE%'       => strtolower($safeProject),
             '%PROJECT_LOWER%'            => strtolower($project),
             '%PROJECT_UPPER%'            => strtoupper($project),
             '%PROJECT_EXTNAME%'          => strtolower($project),
-            '%PROJECT_NAME%'             => utf8_decode($this->_config->get('name')),
-            '%PROJECT_AUTHOR%'           => utf8_decode($this->_config->get('author')),
-            '%PROJECT_VERSION%'          => utf8_decode($this->_config->get('version')),
-            '%PROJECT_DESCRIPTION%'      => utf8_decode($this->_config->get('description')),
+            '%PROJECT_NAME%'             => utf8_decode($this->config->get('name')),
+            '%PROJECT_AUTHOR%'           => utf8_decode($this->config->get('author')),
+            '%PROJECT_VERSION%'          => utf8_decode($this->config->get('version')),
+            '%PROJECT_DESCRIPTION%'      => utf8_decode($this->config->get('description')),
             '%PROJECT_ZEPVERSION%'       => self::VERSION,
             '%EXTENSION_GLOBALS%'        => $globalCode,
             '%EXTENSION_STRUCT_GLOBALS%' => $globalStruct
@@ -1285,7 +1570,7 @@ class Compiler
             $content = str_replace($mark, $replace, $content);
         }
 
-        Utils::checkAndWriteIfNeeded($content, 'ext/php_' . $project . '.h');
+        Utils::checkAndWriteIfNeeded($content, 'ext/php_' . $safeProject . '.h');
         unset($content);
 
         return $needConfigure;
@@ -1294,11 +1579,41 @@ class Compiler
     /*+
      * Check if the project must be phpized again
      *
-     * @param string $namespace
+     * @return boolean
      */
-    public function checkIfPhpized($namespace)
+    public function checkIfPhpized()
     {
         return !file_exists('ext/Makefile');
+    }
+
+    /**
+     * Returns the internal logger
+     *
+     * @return Logger
+     */
+    public function getLogger()
+    {
+        return $this->logger;
+    }
+
+    /**
+     * Returns the internal config
+     *
+     * @return Config
+     */
+    public function getConfig()
+    {
+        return $this->config;
+    }
+
+    /**
+     * Returns the internal filesystem handler
+     *
+     * @return FileSystem
+     */
+    public function getFileSystem()
+    {
+        return $this->fileSystem;
     }
 
     /**

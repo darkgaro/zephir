@@ -52,7 +52,7 @@ class InstanceOfOperator extends BaseOperator
         }
 
         $symbolVariable = $compilationContext->symbolTable->getVariableForRead($resolved->getCode(), $compilationContext, $expression);
-        if ($symbolVariable->getType() != 'variable') {
+        if (!$symbolVariable->isVariable()) {
             throw new CompilerException("InstanceOf requires a 'dynamic variable' in the left operand", $expression);
         }
 
@@ -66,7 +66,7 @@ class InstanceOfOperator extends BaseOperator
                 $className = Utils::getFullName($resolvedVariable, $compilationContext->classDefinition->getNamespace(), $compilationContext->aliasManager);
                 if ($compilationContext->compiler->isClass($className)) {
                     $classDefinition = $compilationContext->compiler->getClassDefinition($className);
-                    $classEntry = $classDefinition->getClassEntry();
+                    $classEntry = $classDefinition->getClassEntry($compilationContext);
                 } else {
                     if (!class_exists($className, false)) {
                         $code = 'SL("' . $resolvedVariable . '")';
@@ -87,18 +87,18 @@ class InstanceOfOperator extends BaseOperator
                             $className = $compilationContext->getFullName($resolvedVariable);
                             if ($compilationContext->compiler->isClass($className)) {
                                 $classDefinition = $compilationContext->compiler->getClassDefinition($className);
-                                $classEntry = $classDefinition->getClassEntry();
+                                $classEntry = $classDefinition->getClassEntry($compilationContext);
                             } else {
                                 if ($compilationContext->compiler->isInterface($className)) {
                                     $classDefinition = $compilationContext->compiler->getClassDefinition($className);
-                                    $classEntry = $classDefinition->getClassEntry();
+                                    $classEntry = $classDefinition->getClassEntry($compilationContext);
                                 } else {
                                     if (!class_exists($className, false)) {
-                                        $code = 'SL("' . trim(Utils::addSlashes($className, true), "\\") . '")';
+                                        $code = 'SL("' . trim(Utils::escapeClassName($className), "\\") . '")';
                                     } else {
                                         $classEntry = $compilationContext->classDefinition->getClassEntryByClassName($className, $compilationContext, true);
                                         if (!$classEntry) {
-                                            $code = 'SL("' . trim(Utils::addSlashes($className, true), "\\") . '")';
+                                            $code = 'SL("' . trim(Utils::escapeClassName($className), "\\") . '")';
                                         }
                                     }
                                 }

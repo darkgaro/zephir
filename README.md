@@ -2,10 +2,10 @@ Zephir
 ======
 
 [![Build Status](https://secure.travis-ci.org/phalcon/zephir.svg?branch=master)](http://travis-ci.org/phalcon/zephir)
-[![Coverage Status](https://coveralls.io/repos/phalcon/zephir/badge.png?branch=master)](https://coveralls.io/r/phalcon/zephir)
 [![Dependency Status](https://www.versioneye.com/package/phalcon:zephir/badge.png)](https://www.versioneye.com/package/phalcon:zephir)
 [![Latest Stable Version](https://poser.pugx.org/phalcon/zephir/v/stable.png)](https://packagist.org/packages/phalcon/zephir)
 [![Total Downloads](https://poser.pugx.org/phalcon/zephir/downloads.png)](https://packagist.org/packages/phalcon/zephir)
+[![License](https://poser.pugx.org/phalcon/zephir/license.svg)](https://packagist.org/packages/phalcon/zephir)
 
 Zephir - Ze(nd Engine) Ph(p) I(nt)r(mediate) - is a high level language that eases the creation and maintainability
 of extensions for PHP. Zephir extensions are exported to C code that can be compiled and optimized by major C compilers
@@ -48,7 +48,7 @@ You can read more about composer binaries
 in it's [documentation](https://getcomposer.org/doc/articles/vendor-binaries.md).
 
 For global installation via composer you can use `composer global require`.
-Do not forget add `~/.composer/bin` into your `$PATH`.
+Do not forget add `~/.composer/vendor/bin` into your `$PATH`.
 
 Also you can just clone zephir repository and run `./install`.
 For global installation add `-c` flag.
@@ -67,11 +67,12 @@ Compile the extension:
 ./bin/zephir compile
 ```
 
-Documentation & Blog
---------------------
-* A preliminary documentation can be found [here](http://zephir-lang.com/)
-* Official Blog can be found [here](http://blog.zephir-lang.com/)
-* Sublime/TextMate highlight-syntax bundle [here](http://github.com/phalcon/zephir-sublime)
+External Links
+--------------
+* [Documentation](http://zephir-lang.com/)
+* [Official Blog](http://blog.zephir-lang.com/)
+* [Forum](http://forum.zephir-lang.com/)
+* [Twitter](http://twitter.com/zephirlang)
 
 License
 -------
@@ -79,19 +80,7 @@ Zephir is open-sourced software licensed under the MIT License. See the LICENSE 
 
 Contributing
 ------------
-[See `CONTRIBUTING.md`](https://github.com/phalcon/zephir/blob/master/CONTRIBUTING.md) for details about contributions to this repository.
-
-Donate & Sponsor
-----------------
-Zephir is available to the public without charge, under the permissive MIT License.
-Zephir is available to everyone freely on terms that allow both non-commercial and commercial activity.
-This license allows for academics, for-profit software developers, volunteers and enthusiasts alike to
-collaborate together to make a better software for everyone.
-
-Donate allowing us to invest more time and resources to the project,
-ensuring it will be ready sooner and with loads of features.
-
-[![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=8N7LHE5QH376N)
+See [CONTRIBUTING.md](https://github.com/phalcon/zephir/blob/master/CONTRIBUTING.md) for details about contributions to this repository.
 
 Current Build Status
 --------------------

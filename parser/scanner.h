@@ -100,6 +100,7 @@
 #define XX_T_AS 396
 #define XX_T_TRY 397
 #define XX_T_CATCH 398
+#define XX_T_DEPRECATED 399
 
 /* Operators */
 #define XX_T_AT '@'
@@ -146,8 +147,11 @@
 #define XX_T_MODASSIGN 418
 #define XX_T_BITWISE_SHIFTLEFT 419
 #define XX_T_BITWISE_SHIFTRIGHT 420
+#define XX_T_DOUBLEARROW 440
 
 #define XX_T_CBLOCK 451
+
+#define XX_T_ELSEIF 452
 
 /* List of tokens and their names */
 typedef struct _xx_token_names {
@@ -164,6 +168,10 @@ typedef struct _xx_scanner_state {
 	int mode;
 	unsigned int active_line;
 	unsigned int active_char;
+	unsigned int class_line;
+	unsigned int class_char;
+	unsigned int method_line;
+	unsigned int method_char;
 	char *active_file;
 } xx_scanner_state;
 

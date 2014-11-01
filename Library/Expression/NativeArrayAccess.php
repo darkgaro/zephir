@@ -19,6 +19,7 @@
 
 namespace Zephir\Expression;
 
+use Zephir\Compiler;
 use Zephir\Variable;
 use Zephir\CompilationContext;
 use Zephir\CompiledExpression;
@@ -48,6 +49,11 @@ class NativeArrayAccess
     protected $_expectingVariable;
 
     /**
+     * @var boolean
+     */
+    protected $_noisy = true;
+
+    /**
      * Sets if the variable must be resolved into a direct variable symbol
      * create a temporary value or ignore the return value
      *
@@ -71,6 +77,16 @@ class NativeArrayAccess
     }
 
     /**
+     * Sets whether the expression must be resolved in "noisy" mode
+     *
+     * @param boolean $noisy
+     */
+    public function setNoisy($noisy)
+    {
+        $this->_noisy = $noisy;
+    }
+
+    /**
      * @param array $expression
      * @param Variable $variableVariable
      * @param CompilationContext $compilationContext
@@ -81,11 +97,11 @@ class NativeArrayAccess
         if ($this->_expecting) {
             if ($this->_expectingVariable) {
                 $symbolVariable = $this->_expectingVariable;
-                if ($symbolVariable->getType() != 'char') {
-                    $symbolVariable = $compilationContext->symbolTable->getTempNonTrackedVariable('char', $compilationContext);
+                if ($symbolVariable->getType() != 'char' && $symbolVariable->getType() != 'uchar') {
+                    $symbolVariable = $compilationContext->symbolTable->getTempNonTrackedVariable('uchar', $compilationContext);
                 }
             } else {
-                $symbolVariable = $compilationContext->symbolTable->getTempNonTrackedVariable('char', $compilationContext);
+                $symbolVariable = $compilationContext->symbolTable->getTempNonTrackedVariable('uchar', $compilationContext);
             }
         }
 
@@ -162,6 +178,7 @@ class NativeArrayAccess
 
         if ($this->_readOnly) {
             if ($this->_expecting && $this->_expectingVariable) {
+
                 /**
                  * If a variable is assigned once in the method, we try to promote it
                  * to a read only variable
@@ -195,6 +212,7 @@ class NativeArrayAccess
             }
         } else {
             if ($this->_expecting && $this->_expectingVariable) {
+
                 /**
                  * If a variable is assigned once in the method, we try to promote it
                  * to a read only variable
@@ -231,7 +249,7 @@ class NativeArrayAccess
         /**
          * Variable that receives property accesses must be polimorphic
          */
-        if ($symbolVariable->getType() != 'variable') {
+        if (!$symbolVariable->isVariable()) {
             throw new CompilerException("Cannot use variable: " . $symbolVariable->getType() . " to assign array index", $expression);
         }
 
@@ -241,9 +259,17 @@ class NativeArrayAccess
         $symbolVariable->setDynamicTypes('undefined');
 
         if ($this->_readOnly || $readOnly) {
-            $flags = 'PH_NOISY | PH_READONLY';
+            if ($this->_noisy) {
+                $flags = 'PH_NOISY | PH_READONLY';
+            } else {
+                $flags = 'PH_READONLY';
+            }
         } else {
-            $flags = 'PH_NOISY';
+            if ($this->_noisy) {
+                $flags = 'PH_NOISY';
+            } else {
+                $flags = '0';
+            }
         }
 
         /**
@@ -258,12 +284,12 @@ class NativeArrayAccess
             case 'uint':
             case 'long':
                 $compilationContext->headersManager->add('kernel/array');
-                $codePrinter->output('zephir_array_fetch_long(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', ' . $exprIndex->getCode() . ', ' . $flags . ' TSRMLS_CC);');
+                $codePrinter->output('zephir_array_fetch_long(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', ' . $exprIndex->getCode() . ', ' . $flags . ', "' . Compiler::getShortUserPath($arrayAccess['file']) . '", ' . $arrayAccess['line'] . ' TSRMLS_CC);');
                 break;
 
             case 'string':
                 $compilationContext->headersManager->add('kernel/array');
-                $codePrinter->output('zephir_array_fetch_string(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', SL("' . $exprIndex->getCode() . '"), ' . $flags . ' TSRMLS_CC);');
+                $codePrinter->output('zephir_array_fetch_string(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', SL("' . $exprIndex->getCode() . '"), ' . $flags . ', "' . Compiler::getShortUserPath($arrayAccess['file']) . '", ' . $arrayAccess['line'] . ' TSRMLS_CC);');
                 break;
 
             case 'variable':
@@ -274,16 +300,16 @@ class NativeArrayAccess
                     case 'uint':
                     case 'long':
                         $compilationContext->headersManager->add('kernel/array');
-                        $codePrinter->output('zephir_array_fetch_long(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', ' . $variableIndex->getName() . ', ' . $flags . ' TSRMLS_CC);');
+                        $codePrinter->output('zephir_array_fetch_long(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', ' . $variableIndex->getName() . ', ' . $flags . ', "' . Compiler::getShortUserPath($arrayAccess['file']) . '", ' . $arrayAccess['line'] . ' TSRMLS_CC);');
                         break;
 
                     case 'string':
                     case 'variable':
                         $compilationContext->headersManager->add('kernel/array');
                         if ($variableIndex->isLocalOnly()) {
-                            $codePrinter->output('zephir_array_fetch(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', &' . $variableIndex->getName() . ', ' . $flags . ' TSRMLS_CC);');
+                            $codePrinter->output('zephir_array_fetch(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', &' . $variableIndex->getName() . ', ' . $flags . ', "' . Compiler::getShortUserPath($arrayAccess['file']) . '", ' . $arrayAccess['line'] . ' TSRMLS_CC);');
                         } else {
-                            $codePrinter->output('zephir_array_fetch(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', ' . $variableIndex->getName() . ', ' . $flags . ' TSRMLS_CC);');
+                            $codePrinter->output('zephir_array_fetch(&' . $symbolVariable->getName() . ', ' . $variableVariable->getName() . ', ' . $variableIndex->getName() . ', ' . $flags . ', "' . Compiler::getShortUserPath($arrayAccess['file']) . '", ' . $arrayAccess['line'] . ' TSRMLS_CC);');
                         }
                         break;
 

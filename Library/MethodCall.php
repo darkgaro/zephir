@@ -147,10 +147,9 @@ class MethodCall extends Call
          * Method calls only return zvals so we need to validate the target variable is also a zval
          */
         if (!$builtInType) {
-
             if ($isExpecting) {
 
-                if ($symbolVariable->getType() != 'variable') {
+                if (!$symbolVariable->isVariable()) {
                     throw new CompilerException("Returned values by functions can only be assigned to variant variables", $expression);
                 }
 
@@ -179,13 +178,35 @@ class MethodCall extends Call
                 $classDefinition = $compilationContext->classDefinition;
                 if (!$classDefinition->hasMethod($methodName)) {
                     if ($check) {
-                        throw new CompilerException("Class '" . $classDefinition->getCompleteName() . "' does not implement method: '" . $expression['name'] . "'", $expression);
+                        $found = false;
+                        $interfaces = $classDefinition->isAbstract() ? $classDefinition->getImplementedInterfaces() : null;
+                        if (is_array($interfaces)) {
+                            $compiler = $compilationContext->compiler;
+                            foreach ($interfaces as $interface) {
+                                $classInterfaceDefinition = $compiler->getClassDefinition($interface);
+                                if ($classInterfaceDefinition->hasMethod($methodName)) {
+                                    $found = true;
+                                    $classMethod = $classInterfaceDefinition->getMethod($methodName);
+                                    break;
+                                }
+                            }
+                        }
+                        if (!$found) {
+                            $possibleMethod = $classDefinition->getPossibleMethodName($expression['name']);
+                            if ($possibleMethod) {
+                                throw new CompilerException("Class '" . $classDefinition->getCompleteName() . "' does not implement method: '" . $expression['name'] . "'. Did you mean '" . $possibleMethod . "'?", $expression);
+                            } else {
+                                throw new CompilerException("Class '" . $classDefinition->getCompleteName() . "' does not implement method: '" . $expression['name'] . "'", $expression);
+                            }
+                        }
+                    }
+                } else {
+                    if ($check) {
+                        $classMethod = $classDefinition->getMethod($methodName);
                     }
                 }
 
                 if ($check) {
-                    $classMethod = $classDefinition->getMethod($methodName);
-
                     /**
                      * Private methods must be called in their declaration scope
                      */
@@ -215,6 +236,8 @@ class MethodCall extends Call
                     if ($callNumberParameters < $expectedNumberParameters) {
                         throw new CompilerException("Method '" . $classDefinition->getCompleteName() . "::" . $expression['name'] . "' called with a wrong number of parameters, the method has: " . $expectedNumberParameters . ", passed: " . $callNumberParameters, $expression);
                     }
+
+                    $method = $classMethod;
                 }
 
             } else {

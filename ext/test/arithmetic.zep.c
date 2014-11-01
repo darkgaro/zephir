@@ -13,7 +13,9 @@
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
+#include "kernel/fcall.h"
 #include "kernel/operators.h"
+#include "kernel/object.h"
 
 
 /**
@@ -22,6 +24,8 @@
 ZEPHIR_INIT_CLASS(Test_Arithmetic) {
 
 	ZEPHIR_REGISTER_CLASS(Test, Arithmetic, test, arithmetic, test_arithmetic_method_entry, 0);
+
+	zend_declare_property_long(test_arithmetic_ce, SL("tmp1"), 100, ZEND_ACC_PROTECTED TSRMLS_CC);
 
 	return SUCCESS;
 
@@ -105,6 +109,24 @@ PHP_METHOD(Test_Arithmetic, boolSumSimple) {
 
 }
 
+PHP_METHOD(Test_Arithmetic, boolSumExpression) {
+
+	int ZEPHIR_LAST_CALL_STATUS;
+	zephir_nts_static zephir_fcall_cache_entry *_2 = NULL;
+	zval _0, *_1 = NULL;
+	zend_bool a;
+
+	ZEPHIR_MM_GROW();
+
+	a = 1;
+	ZEPHIR_SINIT_VAR(_0);
+	ZVAL_LONG(&_0, 0);
+	ZEPHIR_CALL_FUNCTION(&_1, "exp", &_2, &_0);
+	zephir_check_call_status();
+	RETURN_MM_LONG((a + zephir_get_numberval(_1)));
+
+}
+
 PHP_METHOD(Test_Arithmetic, doubleSum) {
 
 	double a, b, c;
@@ -146,6 +168,40 @@ PHP_METHOD(Test_Arithmetic, doubleSum2Simple) {
 
 	c = 3;
 	RETURN_DOUBLE(c);
+
+}
+
+PHP_METHOD(Test_Arithmetic, doubleSumExpression) {
+
+	int ZEPHIR_LAST_CALL_STATUS;
+	zephir_nts_static zephir_fcall_cache_entry *_2 = NULL;
+	zval _0, *_1 = NULL;
+
+	ZEPHIR_MM_GROW();
+
+	ZEPHIR_SINIT_VAR(_0);
+	ZVAL_LONG(&_0, 0);
+	ZEPHIR_CALL_FUNCTION(&_1, "exp", &_2, &_0);
+	zephir_check_call_status();
+	RETURN_MM_DOUBLE((1.0 + zephir_get_numberval(_1)));
+
+}
+
+PHP_METHOD(Test_Arithmetic, doubleSumVarExpression) {
+
+	int ZEPHIR_LAST_CALL_STATUS;
+	zephir_nts_static zephir_fcall_cache_entry *_2 = NULL;
+	zval _0, *_1 = NULL;
+	double a;
+
+	ZEPHIR_MM_GROW();
+
+	a = 1.0;
+	ZEPHIR_SINIT_VAR(_0);
+	ZVAL_LONG(&_0, 0);
+	ZEPHIR_CALL_FUNCTION(&_1, "exp", &_2, &_0);
+	zephir_check_call_status();
+	RETURN_MM_LONG((a + zephir_get_numberval(_1)));
 
 }
 
@@ -835,14 +891,14 @@ PHP_METHOD(Test_Arithmetic, addSum21) {
 PHP_METHOD(Test_Arithmetic, addSum22) {
 
 	int b, _0;
-	zval *a;
+	zval *a = NULL;
 
 	ZEPHIR_MM_GROW();
 
 	ZEPHIR_INIT_VAR(a);
 	ZVAL_DOUBLE(a, 0.0);
 	b = 1;
-	ZEPHIR_INIT_BNVAR(a);
+	ZEPHIR_INIT_NVAR(a);
 	_0 = zephir_get_numberval(a);
 	ZVAL_LONG(a, _0 + b);
 	RETURN_CCTOR(a);
@@ -873,7 +929,8 @@ PHP_METHOD(Test_Arithmetic, addSum24) {
 	ZEPHIR_INIT_VAR(_0);
 	ZVAL_LONG(_0, 1024);
 	ZEPHIR_ADD_ASSIGN(a, _0);
-	RETURN_CCTOR(a);
+	RETVAL_ZVAL(a, 1, 0);
+	RETURN_MM();
 
 }
 
@@ -1696,14 +1753,14 @@ PHP_METHOD(Test_Arithmetic, sub21) {
 PHP_METHOD(Test_Arithmetic, sub22) {
 
 	int b, _0;
-	zval *a;
+	zval *a = NULL;
 
 	ZEPHIR_MM_GROW();
 
 	ZEPHIR_INIT_VAR(a);
 	ZVAL_DOUBLE(a, 0.0);
 	b = 1;
-	ZEPHIR_INIT_BNVAR(a);
+	ZEPHIR_INIT_NVAR(a);
 	_0 = zephir_get_numberval(a);
 	ZVAL_LONG(a, _0 - b);
 	RETURN_CCTOR(a);
@@ -1734,7 +1791,8 @@ PHP_METHOD(Test_Arithmetic, sub24) {
 	ZEPHIR_INIT_VAR(_0);
 	ZVAL_LONG(_0, 1024);
 	ZEPHIR_SUB_ASSIGN(a, _0);
-	RETURN_CCTOR(a);
+	RETVAL_ZVAL(a, 1, 0);
+	RETURN_MM();
 
 }
 
@@ -1761,7 +1819,8 @@ PHP_METHOD(Test_Arithmetic, mul2) {
 	ZEPHIR_INIT_VAR(_0);
 	ZVAL_LONG(_0, 5);
 	ZEPHIR_MUL_ASSIGN(a, _0);
-	RETURN_CCTOR(a);
+	RETVAL_ZVAL(a, 1, 0);
+	RETURN_MM();
 
 }
 
@@ -1824,6 +1883,25 @@ PHP_METHOD(Test_Arithmetic, letStatementVarMinus) {
 	zephir_negate(b TSRMLS_CC);
 	ZEPHIR_CPY_WRT(a, b);
 	RETURN_CCTOR(a);
+
+}
+
+PHP_METHOD(Test_Arithmetic, div1) {
+
+	int a = 100;
+
+
+	RETURN_DOUBLE(zephir_safe_div_long_long(((a - 1)), 4 TSRMLS_CC));
+
+}
+
+PHP_METHOD(Test_Arithmetic, div2) {
+
+	zval *_0;
+
+
+	_0 = zephir_fetch_nproperty_this(this_ptr, SL("tmp1"), PH_NOISY_CC);
+	RETURN_DOUBLE(zephir_safe_div_long_long(((zephir_get_numberval(_0) - 1)), 4 TSRMLS_CC));
 
 }
 

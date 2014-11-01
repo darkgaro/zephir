@@ -92,7 +92,6 @@ static void xx_scanner_error_msg(xx_parser_status *parser_status){
 	/*char *error, *error_part;
 	XX_scanner_state *state = parser_status->scanner_state;
 
-	//PHALCON_INIT_VAR(*error_msg);
 	ALLOC_INIT_ZVAL(*error_msg);
 	if (state->start) {
 		error = emalloc(sizeof(char) * (128 + state->start_length +  Z_STRLEN_P(state->active_file)));
@@ -159,6 +158,10 @@ int xx_parse_program(char *program, unsigned int program_length, char *file_path
 	state->active_file = file_path;
 	state->active_line = 1;
 	state->active_char = 1;
+	state->class_line = 0;
+	state->class_char = 0;
+	state->method_line = 0;
+	state->method_char = 0;
 
 	state->end = state->start;
 
@@ -206,6 +209,9 @@ int xx_parse_program(char *program, unsigned int program_length, char *file_path
 			case XX_T_INLINE:
 				xx_(xx_parser, XX_INLINE, NULL, parser_status);
 				break;
+			case XX_T_DEPRECATED:
+				xx_(xx_parser, XX_DEPRECATED, NULL, parser_status);
+				break;
 			case XX_T_FINAL:
 				xx_(xx_parser, XX_FINAL, NULL, parser_status);
 				break;
@@ -235,6 +241,9 @@ int xx_parse_program(char *program, unsigned int program_length, char *file_path
 				break;
 			case XX_T_ELSE:
 				xx_(xx_parser, XX_ELSE, NULL, parser_status);
+				break;
+			case XX_T_ELSEIF:
+				xx_(xx_parser, XX_ELSEIF, NULL, parser_status);
 				break;
 			case XX_T_LOOP:
 				xx_(xx_parser, XX_LOOP, NULL, parser_status);
@@ -353,6 +362,9 @@ int xx_parse_program(char *program, unsigned int program_length, char *file_path
 				break;
 			case XX_T_ARROW:
 				xx_(xx_parser, XX_ARROW, NULL, parser_status);
+				break;
+			case XX_T_DOUBLEARROW:
+				xx_(xx_parser, XX_DOUBLEARROW, NULL, parser_status);
 				break;
 			case XX_T_DOUBLECOLON:
 				xx_(xx_parser, XX_DOUBLECOLON, NULL, parser_status);
@@ -536,7 +548,6 @@ int xx_parse_program(char *program, unsigned int program_length, char *file_path
 				/*if (!*error_msg) {
 					error = emalloc(sizeof(char) * (48 + Z_STRLEN_P(state->active_file)));
 					sprintf(error, "Scanner: unknown opcode %d on in %s line %d", token.opcode, Z_STRVAL_P(state->active_file), state->active_line);
-					//PHALCON_INIT_VAR(*error_msg);
 					ALLOC_INIT_ZVAL(*error_msg);
 					ZVAL_STRING(*error_msg, error, 1);
 					efree(error);
@@ -580,7 +591,6 @@ int xx_parse_program(char *program, unsigned int program_length, char *file_path
 		status = FAILURE;
 		/*if (parser_status->syntax_error) {
 			if (!*error_msg) {
-				//PHALCON_INIT_VAR(*error_msg);
 				ALLOC_INIT_ZVAL(*error_msg);
 				ZVAL_STRING(*error_msg, parser_status->syntax_error, 1);
 			}

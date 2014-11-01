@@ -47,6 +47,8 @@ class StaticMethodCache
     protected $cache = array();
 
     /**
+     * MethodCache
+     *
      * @param CompilationContext $compilationContext
      * @param ClassMethod|\ReflectionMethod $method
      * @param boolean $allowNtsCache
@@ -59,14 +61,22 @@ class StaticMethodCache
 
         if (!($method instanceof \ReflectionMethod)) {
 
-            if (isset($this->cache[$method->getClassDefinition()->getCompleteName()][$method->getName()])) {
-                return '&' . $this->cache[$method->getClassDefinition()->getCompleteName()][$method->getName()]->getName();
+            $completeName = $method->getClassDefinition()->getCompleteName();
+
+            /**
+             * Avoid generate caches for external classes
+             */
+            if ($method->getClassDefinition()->isExternal()) {
+                return 'NULL';
+            }
+
+            if (isset($this->cache[$completeName][$method->getName()])) {
+                return '&' . $this->cache[$completeName][$method->getName()]->getName();
             }
 
             if ($method->getClassDefinition()->isInterface()) {
                 return 'NULL';
             }
-
         }
 
         $mustBeCached = false;
@@ -86,9 +96,7 @@ class StaticMethodCache
                     return 'NULL';
                 }
             }
-
         }
-
 
         if ($method->isPrivate() || $method->isFinal() || $mustBeCached) {
             $functionCache = $compilationContext->symbolTable->getTempVariableForWrite('static_zephir_fcall_cache_entry', $compilationContext);
@@ -100,7 +108,7 @@ class StaticMethodCache
         $functionCache->setReusable(false);
 
         if (!($method instanceof \ReflectionMethod)) {
-            $this->cache[$method->getClassDefinition()->getCompleteName()][$method->getName()] = $functionCache;
+            $this->cache[$completeName][$method->getName()] = $functionCache;
         }
 
         return '&' . $functionCache->getName();

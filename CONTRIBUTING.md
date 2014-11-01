@@ -6,7 +6,7 @@ Zephir is an open source project and a volunteer effort. Contributions are welco
 
 If you are not familiar with markdown and also
 [GitHub markdown implementation](https://help.github.com/articles/github-flavored-markdown),
-then read this. This is important, because we are all write code, and all our questions about the code.
+then read this. This is important, because we write code, and all our questions are about the code.
 So lets respect each other and wrap code-blocks by specified tags.
 
 If you have a change or new feature in mind, please fill an [NFR](https://github.com/phalcon/zephir/wiki/NFR).
@@ -47,9 +47,9 @@ please make sure the listed date range includes the current year.
 
 Many bugs are raised because users are not running the latest version. Please visit the download page, download/clone the latest available version (or compile it) and confirm if the issue you are experiencing is indeed a bug. When submitting bugs to the issue tracker make sure your issue includes:
 
- - Code to reproduce the bug.
- - Your environment: OS, compiler.
- - Zephir version, if your version is outdated - try getting the lastest version.
+ - Code to reproduce the bug
+ - Your environment: OS, compiler
+ - Zephir version, if your version is outdated - try updating the latest version
 
 Thanks! <br />
 Zephir Team

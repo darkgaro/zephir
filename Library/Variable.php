@@ -140,7 +140,7 @@ class Variable
      */
     public function __construct($type, $name, $branch, $defaultInitValue = null)
     {
-        switch($type) {
+        switch ($type) {
             case 'callable':
             case 'object':
             case 'resource':
@@ -435,14 +435,15 @@ class Variable
     {
         if ($types) {
             unset($this->_dynamicTypes['unknown']);
+
             if (is_string($types)) {
-                if (!isset($this->_dynamicType[$types])) {
+                if (!isset($this->_dynamicTypes[$types])) {
                     $this->_dynamicTypes[$types] = true;
                 }
             } else {
                 foreach ($types as $type => $one) {
-                    if (!isset($this->_dynamicTypes[$type])) {
-                        $this->_dynamicTypes[$type] = true;
+                    if (!isset($this->_dynamicTypes[$one])) {
+                        $this->_dynamicTypes[$one] = true;
                     }
                 }
             }
@@ -599,7 +600,7 @@ class Variable
      */
     public function setMustInitNull($mustInitNull)
     {
-        $this->_mustInitNull = $mustInitNull;
+        $this->_mustInitNull = (boolean) $mustInitNull;
     }
 
     /**
@@ -619,14 +620,17 @@ class Variable
     public function enableDefaultAutoInitValue()
     {
         switch ($this->_type) {
+
             case 'boolean':
             case 'bool':
             case 'int':
             case 'uint':
             case 'long':
             case 'ulong':
+            case 'zephir_ce_guard':
                 $this->_defaultInitValue = 0;
                 break;
+
             case 'variable':
             case 'string':
             case 'array':
@@ -635,6 +639,7 @@ class Variable
                 $this->setMustInitNull(true);
                 $this->setLocalOnly(false);
                 break;
+
             default:
                 throw new CompilerException('Cannot create an automatic safe default value for variable type: ' . $this->_type);
         }
@@ -694,6 +699,14 @@ class Variable
     }
 
     /**
+     * Increase the number of times the varible has been initialized
+     */
+    public function increaseVariantIfNull()
+    {
+        $this->_variantInits++;
+    }
+
+    /**
      * Initializes a variant variable
      *
      * @param CompilationContext $compilationContext
@@ -725,7 +738,7 @@ class Variable
                     $compilationContext->codePrinter->output('ZEPHIR_INIT_NVAR(' . $this->getName() . ');');
                 } else {
                     if ($this->_variantInits > 0) {
-                        if ($this->_initBranch === 1) {
+                        if ($this->_initBranch === 0) {
                             $compilationContext->codePrinter->output('ZEPHIR_INIT_BNVAR(' . $this->getName() . ');');
                         } else {
                             $this->_mustInitNull = true;
@@ -901,6 +914,7 @@ class Variable
 
     /**
      * Shortcut is type variable?
+     *
      * @return bool
      */
     public function isVariable()
@@ -910,6 +924,7 @@ class Variable
 
     /**
      * Shortcut is type bool?
+     *
      * @return bool
      */
     public function isBoolean()
@@ -919,6 +934,7 @@ class Variable
 
     /**
      * Shortcut is type string?
+     *
      * @return bool
      */
     public function isString()
@@ -928,6 +944,7 @@ class Variable
 
     /**
      * Shortcut is type int?
+     *
      * @return bool
      */
     public function isInt()
@@ -937,6 +954,7 @@ class Variable
 
     /**
      * Shortcut is type double?
+     *
      * @return bool
      */
     public function isDouble()
@@ -945,12 +963,43 @@ class Variable
     }
 
     /**
+     * Shortcut is type double?
+     *
+     * @return bool
+     */
+    public function isArray()
+    {
+        return $this->_type == 'array';
+    }
+
+    /**
      * Shortcut is type variable or string?
+     *
+     * @return bool
+     */
+    public function isNotVariable()
+    {
+        return !$this->isVariable();
+    }
+
+    /**
+     * Shortcut is type variable or string?
+     *
      * @return bool
      */
     public function isNotVariableAndString()
     {
         return !$this->isVariable() && !$this->isString();
+    }
+
+    /**
+     * Shortcut is type variable or array?
+     *
+     * @return bool
+     */
+    public function isNotVariableAndArray()
+    {
+        return !$this->isVariable() && !$this->isArray();
     }
 
     /**

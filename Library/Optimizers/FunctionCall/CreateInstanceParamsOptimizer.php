@@ -53,8 +53,8 @@ class CreateInstanceParamsOptimizer extends OptimizerAbstract
          */
         $call->processExpectedReturn($context);
 
-        $symbolVariable = $call->getSymbolVariable();
-        if ($symbolVariable->getType() != 'variable') {
+        $symbolVariable = $call->getSymbolVariable(true, $context);
+        if (!$symbolVariable->isVariable()) {
             throw new CompilerException("Returned values by functions can only be assigned to variant variables", $expression);
         }
 

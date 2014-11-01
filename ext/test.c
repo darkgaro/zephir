@@ -24,23 +24,39 @@
 #include "kernel/fcall.h"
 #include "kernel/memory.h"
 
-zend_class_entry *test_diinterface_ce;
+
+
 zend_class_entry *test_testinterface_ce;
+zend_class_entry *test_methodinterface_ce;
+zend_class_entry *test_ooimpl_zbeginning_ce;
+zend_class_entry *test_diinterface_ce;
+zend_class_entry *test_extendedinterface_ce;
+zend_class_entry *test_ooimpl_abeginning_ce;
 zend_class_entry *test_constantsparent_ce;
 zend_class_entry *test_oo_oodynamica_ce;
 zend_class_entry *test_properties_publicproperties_ce;
 zend_class_entry *test_scallparent_ce;
+zend_class_entry *test_0__closure_ce;
+zend_class_entry *test_1__closure_ce;
+zend_class_entry *test_2__closure_ce;
+zend_class_entry *test_3__closure_ce;
+zend_class_entry *test_4__closure_ce;
+zend_class_entry *test_5__closure_ce;
+zend_class_entry *test_6__closure_ce;
+zend_class_entry *test_7__closure_ce;
 zend_class_entry *test_arithmetic_ce;
 zend_class_entry *test_arrayobject_ce;
 zend_class_entry *test_assign_ce;
 zend_class_entry *test_bench_foo_ce;
 zend_class_entry *test_bitwise_ce;
 zend_class_entry *test_branchprediction_ce;
+zend_class_entry *test_builtin_arraymethods_ce;
 zend_class_entry *test_builtin_charmethods_ce;
 zend_class_entry *test_builtin_intmethods_ce;
 zend_class_entry *test_builtin_stringmethods_ce;
 zend_class_entry *test_cast_ce;
 zend_class_entry *test_cblock_ce;
+zend_class_entry *test_closures_ce;
 zend_class_entry *test_compare_ce;
 zend_class_entry *test_concat_ce;
 zend_class_entry *test_constants_ce;
@@ -67,16 +83,35 @@ zend_class_entry *test_instanceoff_ce;
 zend_class_entry *test_internalclasses_ce;
 zend_class_entry *test_internalinterfaces_ce;
 zend_class_entry *test_issettest_ce;
+zend_class_entry *test_issues_ce;
 zend_class_entry *test_json_ce;
 zend_class_entry *test_logical_ce;
 zend_class_entry *test_mcall_ce;
 zend_class_entry *test_mcallchained_ce;
+zend_class_entry *test_methodabstract_ce;
 zend_class_entry *test_methodargs_ce;
 zend_class_entry *test_nativearray_ce;
 zend_class_entry *test_oo_abstractclass_ce;
 zend_class_entry *test_oo_ce;
 zend_class_entry *test_oo_constantsinterface_ce;
+zend_class_entry *test_oo_deprecatedmethods_ce;
 zend_class_entry *test_oo_dynamicprop_ce;
+zend_class_entry *test_oo_extend_spl_arrayobject_ce;
+zend_class_entry *test_oo_extend_spl_directoryiterator_ce;
+zend_class_entry *test_oo_extend_spl_doublylinkedlist_ce;
+zend_class_entry *test_oo_extend_spl_fileinfo_ce;
+zend_class_entry *test_oo_extend_spl_fileobject_ce;
+zend_class_entry *test_oo_extend_spl_filesystemiterator_ce;
+zend_class_entry *test_oo_extend_spl_fixedarray_ce;
+zend_class_entry *test_oo_extend_spl_globiterator_ce;
+zend_class_entry *test_oo_extend_spl_heap_ce;
+zend_class_entry *test_oo_extend_spl_maxheap_ce;
+zend_class_entry *test_oo_extend_spl_minheap_ce;
+zend_class_entry *test_oo_extend_spl_priorityqueue_ce;
+zend_class_entry *test_oo_extend_spl_queue_ce;
+zend_class_entry *test_oo_extend_spl_recursivedirectoryiterator_ce;
+zend_class_entry *test_oo_extend_spl_stack_ce;
+zend_class_entry *test_oo_extend_spl_tempfileobject_ce;
 zend_class_entry *test_oo_extendpdoclass_ce;
 zend_class_entry *test_oo_ooconstruct_ce;
 zend_class_entry *test_oo_ooconstructparams_ce;
@@ -84,11 +119,15 @@ zend_class_entry *test_oo_oodynamicb_ce;
 zend_class_entry *test_oo_oonativeimplements_ce;
 zend_class_entry *test_oo_oonoconstruct_ce;
 zend_class_entry *test_oo_ooparams_ce;
+zend_class_entry *test_oo_param_ce;
 zend_class_entry *test_oo_propertyaccess_ce;
+zend_class_entry *test_operator_ce;
+zend_class_entry *test_optimizers_arraymerge_ce;
 zend_class_entry *test_pdostatement_ce;
 zend_class_entry *test_pregmatch_ce;
 zend_class_entry *test_properties_extendspublicproperties_ce;
 zend_class_entry *test_properties_privateproperties_ce;
+zend_class_entry *test_properties_propertyarray_ce;
 zend_class_entry *test_properties_protectedproperties_ce;
 zend_class_entry *test_properties_staticprotectedproperties_ce;
 zend_class_entry *test_properties_staticpublicproperties_ce;
@@ -104,6 +143,7 @@ zend_class_entry *test_scall_ce;
 zend_class_entry *test_scallexternal_ce;
 zend_class_entry *test_spectralnorm_ce;
 zend_class_entry *test_spropertyaccess_ce;
+zend_class_entry *test_statements_ce;
 zend_class_entry *test_strings_ce;
 zend_class_entry *test_ternary_ce;
 zend_class_entry *test_trie_ce;
@@ -169,12 +209,15 @@ void zephir_initialize_memory(zend_zephir_globals_def *zephir_globals_ptr TSRMLS
 	Z_SET_REFCOUNT_P(zephir_globals_ptr->global_true, 2);
 	ZVAL_TRUE(zephir_globals_ptr->global_true);
 
-	//zephir_globals_ptr->initialized = 1;
+	zephir_globals_ptr->initialized = 1;
 }
 
+/**
+ * Cleans the function/method cache up
+ */
 int zephir_cleanup_fcache(void *pDest TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
 {
-	zephir_fcall_cache_entry **entry = (zephir_fcall_cache_entry**)pDest;
+	zephir_fcall_cache_entry **entry = (zephir_fcall_cache_entry**) pDest;
 	zend_class_entry *scope;
 	uint len = hash_key->nKeyLength;
 
@@ -184,7 +227,7 @@ int zephir_cleanup_fcache(void *pDest TSRMLS_DC, int num_args, va_list args, zen
 	memcpy(&scope, &hash_key->arKey[len - 2 * sizeof(zend_class_entry**)], sizeof(zend_class_entry*));
 
 /*
-#ifndef ZEPHIR_RELEASE
+#ifndef PHALCON_RELEASE
 	{
 		zend_class_entry *cls;
 		memcpy(&cls, &hash_key->arKey[len - sizeof(zend_class_entry**)], sizeof(zend_class_entry*));
@@ -222,16 +265,14 @@ void zephir_deinitialize_memory(TSRMLS_D)
 	size_t i;
 	zend_zephir_globals_def *zephir_globals_ptr = ZEPHIR_VGLOBAL;
 
-	//if (zephir_globals_ptr->initialized != 1) {
-	//	zephir_globals_ptr->initialized = 0;
-	//	return;
-	//}
+	if (zephir_globals_ptr->initialized != 1) {
+		zephir_globals_ptr->initialized = 0;
+		return;
+	}
 
 	if (zephir_globals_ptr->start_memory != NULL) {
 		zephir_clean_restore_stack(TSRMLS_C);
 	}
-
-	//zephir_orm_destroy_cache(TSRMLS_C);
 
 	zend_hash_apply_with_arguments(zephir_globals_ptr->fcache TSRMLS_CC, zephir_cleanup_fcache, 0);
 
@@ -257,7 +298,7 @@ void zephir_deinitialize_memory(TSRMLS_D)
 		zval_ptr_dtor(&zephir_globals_ptr->global_true);
 	}
 
-	//zephir_globals_ptr->initialized = 0;
+	zephir_globals_ptr->initialized = 0;
 }
 
 static PHP_MINIT_FUNCTION(test)
@@ -278,8 +319,12 @@ static PHP_MINIT_FUNCTION(test)
 	setlocale(LC_ALL, "C");
 #endif
 
-	ZEPHIR_INIT(Test_DiInterface);
 	ZEPHIR_INIT(Test_TestInterface);
+	ZEPHIR_INIT(Test_MethodInterface);
+	ZEPHIR_INIT(Test_OoImpl_ZBeginning);
+	ZEPHIR_INIT(Test_DiInterface);
+	ZEPHIR_INIT(Test_ExtendedInterface);
+	ZEPHIR_INIT(Test_OoImpl_ABeginning);
 	ZEPHIR_INIT(Test_ConstantsParent);
 	ZEPHIR_INIT(Test_Oo_OoDynamicA);
 	ZEPHIR_INIT(Test_Properties_PublicProperties);
@@ -290,11 +335,13 @@ static PHP_MINIT_FUNCTION(test)
 	ZEPHIR_INIT(Test_Bench_Foo);
 	ZEPHIR_INIT(Test_Bitwise);
 	ZEPHIR_INIT(Test_BranchPrediction);
+	ZEPHIR_INIT(Test_BuiltIn_ArrayMethods);
 	ZEPHIR_INIT(Test_BuiltIn_CharMethods);
 	ZEPHIR_INIT(Test_BuiltIn_IntMethods);
 	ZEPHIR_INIT(Test_BuiltIn_StringMethods);
 	ZEPHIR_INIT(Test_Cast);
 	ZEPHIR_INIT(Test_Cblock);
+	ZEPHIR_INIT(Test_Closures);
 	ZEPHIR_INIT(Test_Compare);
 	ZEPHIR_INIT(Test_Concat);
 	ZEPHIR_INIT(Test_Constants);
@@ -321,28 +368,51 @@ static PHP_MINIT_FUNCTION(test)
 	ZEPHIR_INIT(Test_InternalClasses);
 	ZEPHIR_INIT(Test_InternalInterfaces);
 	ZEPHIR_INIT(Test_IssetTest);
+	ZEPHIR_INIT(Test_Issues);
 	ZEPHIR_INIT(Test_Json);
 	ZEPHIR_INIT(Test_Logical);
 	ZEPHIR_INIT(Test_Mcall);
 	ZEPHIR_INIT(Test_McallChained);
+	ZEPHIR_INIT(Test_MethodAbstract);
 	ZEPHIR_INIT(Test_MethodArgs);
 	ZEPHIR_INIT(Test_NativeArray);
 	ZEPHIR_INIT(Test_Oo);
 	ZEPHIR_INIT(Test_Oo_AbstractClass);
 	ZEPHIR_INIT(Test_Oo_ConstantsInterface);
+	ZEPHIR_INIT(Test_Oo_DeprecatedMethods);
 	ZEPHIR_INIT(Test_Oo_DynamicProp);
 	ZEPHIR_INIT(Test_Oo_ExtendPdoClass);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_ArrayObject);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_DirectoryIterator);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_DoublyLinkedList);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_FileInfo);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_FileObject);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_FilesystemIterator);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_FixedArray);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_GlobIterator);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_Heap);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_MaxHeap);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_MinHeap);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_PriorityQueue);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_Queue);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_RecursiveDirectoryIterator);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_Stack);
+	ZEPHIR_INIT(Test_Oo_Extend_Spl_TempFileObject);
 	ZEPHIR_INIT(Test_Oo_OoConstruct);
 	ZEPHIR_INIT(Test_Oo_OoConstructParams);
 	ZEPHIR_INIT(Test_Oo_OoDynamicB);
 	ZEPHIR_INIT(Test_Oo_OoNativeImplements);
 	ZEPHIR_INIT(Test_Oo_OoNoConstruct);
 	ZEPHIR_INIT(Test_Oo_OoParams);
+	ZEPHIR_INIT(Test_Oo_Param);
 	ZEPHIR_INIT(Test_Oo_PropertyAccess);
+	ZEPHIR_INIT(Test_Operator);
+	ZEPHIR_INIT(Test_Optimizers_ArrayMerge);
 	ZEPHIR_INIT(Test_PdoStatement);
 	ZEPHIR_INIT(Test_Pregmatch);
 	ZEPHIR_INIT(Test_Properties_ExtendsPublicProperties);
 	ZEPHIR_INIT(Test_Properties_PrivateProperties);
+	ZEPHIR_INIT(Test_Properties_PropertyArray);
 	ZEPHIR_INIT(Test_Properties_ProtectedProperties);
 	ZEPHIR_INIT(Test_Properties_StaticProtectedProperties);
 	ZEPHIR_INIT(Test_Properties_StaticPublicProperties);
@@ -358,6 +428,7 @@ static PHP_MINIT_FUNCTION(test)
 	ZEPHIR_INIT(Test_Scall);
 	ZEPHIR_INIT(Test_ScallExternal);
 	ZEPHIR_INIT(Test_SpectralNorm);
+	ZEPHIR_INIT(Test_Statements);
 	ZEPHIR_INIT(Test_Strings);
 	ZEPHIR_INIT(Test_Ternary);
 	ZEPHIR_INIT(Test_Trie);
@@ -367,6 +438,14 @@ static PHP_MINIT_FUNCTION(test)
 	ZEPHIR_INIT(Test_Unsettest);
 	ZEPHIR_INIT(Test_UseTest);
 	ZEPHIR_INIT(Test_Vars);
+	ZEPHIR_INIT(test_0__closure);
+	ZEPHIR_INIT(test_1__closure);
+	ZEPHIR_INIT(test_2__closure);
+	ZEPHIR_INIT(test_3__closure);
+	ZEPHIR_INIT(test_4__closure);
+	ZEPHIR_INIT(test_5__closure);
+	ZEPHIR_INIT(test_6__closure);
+	ZEPHIR_INIT(test_7__closure);
 
 #if PHP_VERSION_ID < 50500
 	setlocale(LC_ALL, old_lc_all);
@@ -381,9 +460,6 @@ static PHP_MSHUTDOWN_FUNCTION(test)
 
 	zephir_deinitialize_memory(TSRMLS_C);
 
-	//assert(ZEPHIR_GLOBAL(orm).parser_cache == NULL);
-	//assert(ZEPHIR_GLOBAL(orm).ast_cache == NULL);
-
 	return SUCCESS;
 }
 #endif
@@ -393,12 +469,20 @@ static PHP_MSHUTDOWN_FUNCTION(test)
  */
 static void php_zephir_init_globals(zend_test_globals *zephir_globals TSRMLS_DC)
 {
+	zephir_globals->initialized = 0;
 
 	/* Memory options */
 	zephir_globals->active_memory = NULL;
 
 	/* Virtual Symbol Tables */
 	zephir_globals->active_symbol_table = NULL;
+
+	/* Cache Enabled */
+#if PHP_VERSION_ID < 50600
+	zephir_globals->cache_enabled = 1;
+#else
+	zephir_globals->cache_enabled = 0;
+#endif
 
 	/* Recursive Lock */
 	zephir_globals->recursive_lock = 0;
@@ -427,6 +511,8 @@ static PHP_RINIT_FUNCTION(test)
 
 static PHP_RSHUTDOWN_FUNCTION(test)
 {
+
+	
 
 	zephir_deinitialize_memory(TSRMLS_C);
 	return SUCCESS;

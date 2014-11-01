@@ -34,6 +34,7 @@ use Zephir\Utils;
  */
 class NewInstanceOperator extends BaseOperator
 {
+
     /**
      * Creates a new instance
      *
@@ -51,8 +52,7 @@ class NewInstanceOperator extends BaseOperator
          * Resolves the symbol that expects the value
          */
         $symbolVariable = $this->getExpected($compilationContext, $expression);
-
-        if ($symbolVariable->getType() != 'variable') {
+        if (!$symbolVariable->isVariable()) {
             throw new CompilerException("Objects can only be instantiated into dynamic variables", $expression);
         }
 
@@ -66,7 +66,7 @@ class NewInstanceOperator extends BaseOperator
         $symbolVariable->setDynamicTypes('object');
 
         $dynamic = false;
-        if ($expression['class'] == 'self') {
+        if ($expression['class'] == 'self' || $expression['class'] == 'static') {
             $className = $compilationContext->classDefinition->getCompleteName();
         } else {
             $className = $expression['class'];
@@ -83,7 +83,10 @@ class NewInstanceOperator extends BaseOperator
         /**
          * stdclass doesn't have constructors
          */
-        if (strtolower($className) === 'stdclass') {
+        $lowerClassName = strtolower($className);
+        $isStdClass = $lowerClassName === 'stdclass' || $lowerClassName === '\stdclass';
+
+        if ($isStdClass) {
 
             if (isset($expression['parameters']) && count($expression['parameters']) > 0) {
                 throw new CompilerException("stdclass does not receive parameters in its constructor", $expression);
@@ -103,7 +106,7 @@ class NewInstanceOperator extends BaseOperator
              * Classes inside the same extension
              */
             if ($classDefinition) {
-                $codePrinter->output('object_init_ex(' . $symbolVariable->getName() . ', ' . $classDefinition->getClassEntry() . ');');
+                $codePrinter->output('object_init_ex(' . $symbolVariable->getName() . ', ' . $classDefinition->getClassEntry($compilationContext) . ');');
                 $symbolVariable->setClassTypes($className);
             } else {
 
@@ -111,22 +114,37 @@ class NewInstanceOperator extends BaseOperator
                  * Classes outside the extension
                  */
                 if ($dynamic) {
-                    $zendClassEntry = $compilationContext->symbolTable->addTemp('zend_class_entry', $compilationContext);
+
                     $classNameVariable = $compilationContext->symbolTable->getVariableForRead($className, $compilationContext, $expression);
                     if ($classNameVariable->isNotVariableAndString()) {
-                        throw new CompilerException("Only dynamic/string variables can be used in new operator", $expression);
+                        throw new CompilerException("Only dynamic/string variables can be used in new operator. " . $classNameVariable->getName(), $expression);
                     }
-                    $classNameToFetch = 'Z_STRVAL_P(' . $className . '), Z_STRLEN_P(' . $className . ')';
-                    $codePrinter->output($zendClassEntry->getName() . ' = zend_fetch_class(' . $classNameToFetch . ', ZEND_FETCH_CLASS_AUTO TSRMLS_CC);');
+
+                    /**
+                     * Use a safe string version of the variable to avoid segfaults
+                     */
+                    $compilationContext->headersManager->add('kernel/object');
+                    $safeSymbolVariable = $compilationContext->symbolTable->getTempVariable('variable', $compilationContext, $expression);
+                    $safeSymbolVariable->setMustInitNull(true);
+                    $safeSymbolVariable->setIsInitialized(true, $compilationContext, $expression);
+                    $safeSymbolVariable->increaseUses();
+
+                    $compilationContext->codePrinter->output('zephir_fetch_safe_class(' . $safeSymbolVariable->getName() .', ' . $classNameVariable->getName() .');');
+
+                    $classNameToFetch = 'Z_STRVAL_P(' . $safeSymbolVariable->getName() . '), Z_STRLEN_P(' . $safeSymbolVariable->getName() . ')';
+                    $zendClassEntry = $compilationContext->cacheManager->getClassEntryCache()->get($classNameToFetch, true, $compilationContext);
                     $classEntry = $zendClassEntry->getName();
+
                 } else {
 
                     if (!class_exists($className, false)) {
-                        $zendClassEntry = $compilationContext->symbolTable->addTemp('zend_class_entry', $compilationContext);
+
                         $compilationContext->logger->warning('Class "' . $className . '" does not exist at compile time ', "nonexistent-class", $expression);
-                        $classNameToFetch = 'SL("' . Utils::addSlashes($className, true) . '")';
-                        $codePrinter->output($zendClassEntry->getName() . ' = zend_fetch_class(' . $classNameToFetch . ', ZEND_FETCH_CLASS_AUTO TSRMLS_CC);');
+                        $classNameToFetch = 'SL("' . Utils::escapeClassName($className) . '")';
+
+                        $zendClassEntry = $compilationContext->cacheManager->getClassEntryCache()->get($classNameToFetch, false, $compilationContext);
                         $classEntry = $zendClassEntry->getName();
+
                     } else {
 
                         $reflectionClass = new \ReflectionClass($className);
@@ -142,9 +160,9 @@ class NewInstanceOperator extends BaseOperator
 
                         $classEntry = $compilationContext->classDefinition->getClassEntryByClassName($className, $compilationContext, true);
                         if (!$classEntry) {
-                            $zendClassEntry = $compilationContext->symbolTable->addTemp('zend_class_entry', $compilationContext);
-                            $classNameToFetch = 'SL("' . Utils::addSlashes($className, true) . '")';
-                            $codePrinter->output($zendClassEntry->getName() . ' = zend_fetch_class(' . $classNameToFetch . ', ZEND_FETCH_CLASS_AUTO TSRMLS_CC);');
+
+                            $classNameToFetch = 'SL("' . Utils::escapeClassName($className) . '")';
+                            $zendClassEntry = $compilationContext->cacheManager->getClassEntryCache()->get($classNameToFetch, false, $compilationContext);
                             $classEntry = $zendClassEntry->getName();
                         }
                     }
@@ -164,7 +182,7 @@ class NewInstanceOperator extends BaseOperator
         /**
          * Don't check the constructor for stdclass instances
          */
-        if (strtolower($className) == 'stdclass') {
+        if ($isStdClass) {
             return new CompiledExpression('variable', $symbolVariable->getRealName(), $expression);
         }
 

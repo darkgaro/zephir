@@ -8,11 +8,13 @@ if test "$PHP_TEST" = "yes"; then
 	test/bench/foo.zep.c
 	test/bitwise.zep.c
 	test/branchprediction.zep.c
+	test/builtin/arraymethods.zep.c
 	test/builtin/charmethods.zep.c
 	test/builtin/intmethods.zep.c
 	test/builtin/stringmethods.zep.c
 	test/cast.zep.c
 	test/cblock.zep.c
+	test/closures.zep.c
 	test/compare.zep.c
 	test/concat.zep.c
 	test/constants.zep.c
@@ -29,6 +31,7 @@ if test "$PHP_TEST" = "yes"; then
 	test/exceptions.zep.c
 	test/exists.zep.c
 	test/exitdie.zep.c
+	test/extendedinterface.zep.c
 	test/factorial.zep.c
 	test/fannkuch.zep.c
 	test/fcall.zep.c
@@ -41,16 +44,37 @@ if test "$PHP_TEST" = "yes"; then
 	test/internalclasses.zep.c
 	test/internalinterfaces.zep.c
 	test/issettest.zep.c
+	test/issues.zep.c
 	test/json.zep.c
 	test/logical.zep.c
 	test/mcall.zep.c
 	test/mcallchained.zep.c
+	test/methodabstract.zep.c
 	test/methodargs.zep.c
+	test/methodinterface.zep.c
 	test/nativearray.zep.c
 	test/oo.zep.c
 	test/oo/abstractclass.zep.c
+	test/oo/deprecatedmethods.zep.c
+	test/oo/param.zep.c
 	test/oo/constantsinterface.zep.c
 	test/oo/dynamicprop.zep.c
+	test/oo/extend/spl/arrayobject.zep.c
+	test/oo/extend/spl/directoryiterator.zep.c
+	test/oo/extend/spl/doublylinkedlist.zep.c
+	test/oo/extend/spl/fileinfo.zep.c
+	test/oo/extend/spl/fileobject.zep.c
+	test/oo/extend/spl/filesystemiterator.zep.c
+	test/oo/extend/spl/fixedarray.zep.c
+	test/oo/extend/spl/globiterator.zep.c
+	test/oo/extend/spl/heap.zep.c
+	test/oo/extend/spl/maxheap.zep.c
+	test/oo/extend/spl/minheap.zep.c
+	test/oo/extend/spl/priorityqueue.zep.c
+	test/oo/extend/spl/queue.zep.c
+	test/oo/extend/spl/recursivedirectoryiterator.zep.c
+	test/oo/extend/spl/stack.zep.c
+	test/oo/extend/spl/tempfileobject.zep.c
 	test/oo/extendpdoclass.zep.c
 	test/oo/ooconstruct.zep.c
 	test/oo/ooconstructparams.zep.c
@@ -60,10 +84,15 @@ if test "$PHP_TEST" = "yes"; then
 	test/oo/oonoconstruct.zep.c
 	test/oo/ooparams.zep.c
 	test/oo/propertyaccess.zep.c
+	test/ooimpl/abeginning.zep.c
+	test/ooimpl/zbeginning.zep.c
+	test/operator.zep.c
+	test/optimizers/arraymerge.zep.c
 	test/pdostatement.zep.c
 	test/pregmatch.zep.c
 	test/properties/extendspublicproperties.zep.c
 	test/properties/privateproperties.zep.c
+	test/properties/propertyarray.zep.c
 	test/properties/protectedproperties.zep.c
 	test/properties/publicproperties.zep.c
 	test/properties/staticprotectedproperties.zep.c
@@ -81,6 +110,7 @@ if test "$PHP_TEST" = "yes"; then
 	test/scallparent.zep.c
 	test/spectralnorm.zep.c
 	test/spropertyaccess.zep.c
+	test/statements.zep.c
 	test/strings.zep.c
 	test/ternary.zep.c
 	test/testinterface.zep.c
@@ -90,7 +120,15 @@ if test "$PHP_TEST" = "yes"; then
 	test/unknownclass.zep.c
 	test/unsettest.zep.c
 	test/usetest.zep.c
-	test/vars.zep.c "
+	test/vars.zep.c
+	test/0__closure.zep.c
+	test/1__closure.zep.c
+	test/2__closure.zep.c
+	test/3__closure.zep.c
+	test/4__closure.zep.c
+	test/5__closure.zep.c
+	test/6__closure.zep.c
+	test/7__closure.zep.c "
 	PHP_NEW_EXTENSION(test, $test_sources, $ext_shared)
 
 	old_CPPFLAGS=$CPPFLAGS

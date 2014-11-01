@@ -135,7 +135,11 @@ class SymbolTable
      */
     public function getVariable($name)
     {
-        return $this->_variables[$name];
+        if (isset($this->_variables[$name])) {
+            return $this->_variables[$name];
+        }
+
+        return false;
     }
 
     /**
@@ -464,6 +468,7 @@ class SymbolTable
      * Returns a temporal variable
      *
      * @param string $type
+     * @param CompilationContext $context
      * @return Variable
      */
     public function getTempVariable($type, $compilationContext)
@@ -648,6 +653,7 @@ class SymbolTable
      *
      * @param string $type
      * @param CompilationContext $context
+     * @return Variable
      */
     public function addTemp($type, CompilationContext $context)
     {

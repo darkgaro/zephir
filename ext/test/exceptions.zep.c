@@ -15,6 +15,7 @@
 #include "kernel/exception.h"
 #include "kernel/memory.h"
 #include "kernel/fcall.h"
+#include "kernel/operators.h"
 
 
 ZEPHIR_INIT_CLASS(Test_Exceptions) {
@@ -33,6 +34,14 @@ PHP_METHOD(Test_Exceptions, testException1) {
 
 }
 
+PHP_METHOD(Test_Exceptions, testExceptionStringEscape) {
+
+
+	ZEPHIR_THROW_EXCEPTION_DEBUG_STRW(test_exception_ce, "hello \\\"simple code\\\" test", "test/exceptions.zep", 13);
+	return;
+
+}
+
 PHP_METHOD(Test_Exceptions, testException2) {
 
 	int ZEPHIR_LAST_CALL_STATUS;
@@ -46,7 +55,7 @@ PHP_METHOD(Test_Exceptions, testException2) {
 	object_init_ex(_0, test_exception_ce);
 	ZEPHIR_CALL_METHOD(NULL, _0, "__construct", NULL, msg);
 	zephir_check_call_status();
-	zephir_throw_exception_debug(_0, "test/exceptions.zep", 15 TSRMLS_CC);
+	zephir_throw_exception_debug(_0, "test/exceptions.zep", 20 TSRMLS_CC);
 	ZEPHIR_MM_RESTORE();
 	return;
 
@@ -65,7 +74,7 @@ PHP_METHOD(Test_Exceptions, testException3) {
 	object_init_ex(ex, test_exception_ce);
 	ZEPHIR_CALL_METHOD(NULL, ex, "__construct", NULL, msg);
 	zephir_check_call_status();
-	zephir_throw_exception_debug(ex, "test/exceptions.zep", 23 TSRMLS_CC);
+	zephir_throw_exception_debug(ex, "test/exceptions.zep", 28 TSRMLS_CC);
 	ZEPHIR_MM_RESTORE();
 	return;
 
@@ -80,7 +89,7 @@ PHP_METHOD(Test_Exceptions, getException) {
 
 	object_init_ex(return_value, test_exception_ce);
 	ZEPHIR_INIT_VAR(_0);
-	ZVAL_STRING(_0, "hello4", 0);
+	ZVAL_STRING(_0, "hello4", ZEPHIR_TEMP_PARAM_COPY);
 	ZEPHIR_CALL_METHOD(NULL, return_value, "__construct", NULL, _0);
 	zephir_check_temp_parameter(_0);
 	zephir_check_call_status();
@@ -97,9 +106,43 @@ PHP_METHOD(Test_Exceptions, testException4) {
 
 	ZEPHIR_CALL_METHOD(&_0, this_ptr, "getexception",  NULL);
 	zephir_check_call_status();
-	zephir_throw_exception_debug(_0, "test/exceptions.zep", 33 TSRMLS_CC);
+	zephir_throw_exception_debug(_0, "test/exceptions.zep", 38 TSRMLS_CC);
 	ZEPHIR_MM_RESTORE();
 	return;
+
+}
+
+PHP_METHOD(Test_Exceptions, testExceptionLiteral) {
+
+	zval *type_param = NULL;
+	zval *type = NULL;
+
+	ZEPHIR_MM_GROW();
+	zephir_fetch_params(1, 1, 0, &type_param);
+
+	zephir_get_strval(type, type_param);
+
+
+	do {
+		if (ZEPHIR_IS_STRING(type, "string")) {
+			ZEPHIR_THROW_EXCEPTION_DEBUG_STR(zend_exception_get_default(TSRMLS_C), "Test", "test/exceptions.zep", 45);
+			return;
+		}
+		if (ZEPHIR_IS_STRING(type, "char")) {
+			ZEPHIR_THROW_EXCEPTION_DEBUG_STR(zend_exception_get_default(TSRMLS_C), "t", "test/exceptions.zep", 47);
+			return;
+		}
+		if (ZEPHIR_IS_STRING(type, "int")) {
+			ZEPHIR_THROW_EXCEPTION_DEBUG_STR(zend_exception_get_default(TSRMLS_C), "123", "test/exceptions.zep", 49);
+			return;
+		}
+		if (ZEPHIR_IS_STRING(type, "double")) {
+			ZEPHIR_THROW_EXCEPTION_DEBUG_STR(zend_exception_get_default(TSRMLS_C), "123.123", "test/exceptions.zep", 51);
+			return;
+		}
+	} while(0);
+
+	ZEPHIR_MM_RESTORE();
 
 }
 

@@ -10,6 +10,7 @@ parser/parser.out
 composer.lock
 vendor/
 build
+phpunit.xml
 
 # Ignore for all projects based on Zephir
 
@@ -34,6 +35,8 @@ ext/libtool
 *.o
 *.loT
 ide/
+compile.log
+compile-errors.log
 
 # Runtime
 

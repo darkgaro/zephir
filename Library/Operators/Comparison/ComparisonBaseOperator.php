@@ -60,6 +60,7 @@ class ComparisonBaseOperator extends BaseOperator
             }
 
             if (isset($expr['type'])) {
+
                 switch ($expr['type']) {
 
                     case 'identical':
@@ -85,50 +86,128 @@ class ComparisonBaseOperator extends BaseOperator
                 throw new CompilerException('Right expression of typeof operator must be "string" type', $expr['right']);
             }
 
+            if ($variableVariable->isLocalOnly()) {
+                $variableName = '&' . $variableVariable->getName();
+            } else {
+                $variableName = $variableVariable->getName();
+            }
+
             $value = strtolower($expr['right']['value']);
 
             switch ($variableVariable->getType()) {
-                case 'variable':
+
+                case 'double':
                     switch ($value) {
 
-                        case 'array':
-                            $condition = 'Z_TYPE_P(' . $variableVariable->getName() . ') ' . $operator . ' IS_ARRAY';
+                        case 'double':
+                        case 'float':
+                            $condition = '1 ' . $operator . ' 1';
                             break;
 
-                        case 'object':
-                            $condition = 'Z_TYPE_P(' . $variableVariable->getName() . ') ' . $operator . ' IS_OBJECT';
+                        default:
+                            $condition = '1 ' . $operator . ' 0';
                             break;
+                    }
+                    break;
 
-                        case 'null':
-                            $condition = 'Z_TYPE_P(' . $variableVariable->getName() . ') ' . $operator . ' IS_NULL';
-                            break;
-
-                        case 'string':
-                            $condition = 'Z_TYPE_P(' . $variableVariable->getName() . ') ' . $operator . ' IS_STRING';
-                            break;
+                case 'int':
+                case 'integer':
+                case 'long':
+                    switch ($value) {
 
                         case 'int':
                         case 'integer':
                         case 'long':
-                            $condition = 'Z_TYPE_P(' . $variableVariable->getName() . ') ' . $operator . ' IS_LONG';
+                            $condition = '1 ' . $operator . ' 1';
+                            break;
+
+                        default:
+                            $condition = '1 ' . $operator . ' 0';
+                            break;
+                    }
+                    break;
+
+                case 'bool':
+                    switch ($value) {
+
+                        case 'bool':
+                        case 'boolean':
+                            $condition = '1 ' . $operator . ' 1';
+                            break;
+
+                        default:
+                            $condition = '1 ' . $operator . ' 0';
+                            break;
+                    }
+                    break;
+
+                case 'array':
+                    switch ($value) {
+
+                        case 'array':
+                            $condition = '1 ' . $operator . ' 1';
+                            break;
+
+                        default:
+                            $condition = '1 ' . $operator . ' 0';
+                            break;
+                    }
+                    break;
+
+                case 'string':
+                    switch ($value) {
+
+                        case 'string':
+                            $condition = '1 ' . $operator . ' 1';
+                            break;
+
+                        default:
+                            $condition = '1 ' . $operator . ' 0';
+                            break;
+                    }
+                    break;
+
+                case 'variable':
+                    switch ($value) {
+
+                        case 'array':
+                            $condition = 'Z_TYPE_P(' . $variableName . ') ' . $operator . ' IS_ARRAY';
+                            break;
+
+                        case 'object':
+                            $condition = 'Z_TYPE_P(' . $variableName . ') ' . $operator . ' IS_OBJECT';
+                            break;
+
+                        case 'null':
+                            $condition = 'Z_TYPE_P(' . $variableName . ') ' . $operator . ' IS_NULL';
+                            break;
+
+                        case 'string':
+                            $condition = 'Z_TYPE_P(' . $variableName . ') ' . $operator . ' IS_STRING';
+                            break;
+
+                        case 'int':
+                        case 'long':
+                        case 'integer':
+                            $condition = 'Z_TYPE_P(' . $variableName . ') ' . $operator . ' IS_LONG';
                             break;
 
                         case 'double':
                         case 'float':
-                            $condition = 'Z_TYPE_P(' . $variableVariable->getName() . ') ' . $operator . ' IS_DOUBLE';
+                            $condition = 'Z_TYPE_P(' . $variableName . ') ' . $operator . ' IS_DOUBLE';
                             break;
 
                         case 'boolean':
                         case 'bool':
-                            $condition = 'Z_TYPE_P(' . $variableVariable->getName() . ') ' . $operator . ' IS_BOOL';
+                            $condition = 'Z_TYPE_P(' . $variableName . ') ' . $operator . ' IS_BOOL';
                             break;
 
                         case 'resource':
-                            $condition = 'Z_TYPE_P(' . $variableVariable->getName() . ') ' . $operator . ' IS_RESOURCE';
+                            $condition = 'Z_TYPE_P(' . $variableName . ') ' . $operator . ' IS_RESOURCE';
                             break;
 
                         case 'callable':
-                            $condition = 'zephir_is_callable(' . $variableVariable->getName() . ' TSRMLS_CC) ' . $operator . ' 1';
+                            $condition = 'zephir_is_callable(' . $variableName . ' TSRMLS_CC) ' . $operator . ' 1';
                             break;
 
                         default:
@@ -268,7 +347,12 @@ class ComparisonBaseOperator extends BaseOperator
 
                             case 'variable':
                                 $compilationContext->headersManager->add('kernel/operators');
-                                return new CompiledExpression('bool', $this->_zvalLongNegOperator . '(' . $variableRight->getName() . ', ' . $left->getCode() . ')', $expression);
+                                if ($variableRight->isLocalOnly()) {
+                                    return new CompiledExpression('bool', $this->_zvalLongNegOperator . '(&' . $variableRight->getName() . ', ' . $left->getCode() . ')', $expression);
+                                } else {
+                                    return new CompiledExpression('bool', $this->_zvalLongNegOperator . '(' . $variableRight->getName() . ', ' . $left->getCode() . ')', $expression);
+                                }
+                                break;
 
                             default:
                                 throw new CompilerException("Unknown type: " . $variableRight->getType(), $expression['right']);
@@ -332,6 +416,54 @@ class ComparisonBaseOperator extends BaseOperator
                 }
                 break;
 
+            case 'string':
+                $variableLeft = $compilationContext->symbolTable->getTempLocalVariableForWrite('variable', $compilationContext, $expression);
+                $compilationContext->codePrinter->output('ZVAL_STRING(&' . $variableLeft->getName() . ', "' . $left->getCode() . '", 0);');
+
+                switch ($right->getType()) {
+
+                    case 'null':
+                        $compilationContext->headersManager->add('kernel/operators');
+                        if ($variableLeft->isLocalOnly()) {
+                            return new CompiledExpression('bool', $this->_zvalStringOperator . '(&' . $variableLeft->getName() . ', "")', $expression['left']);
+                        } else {
+                            return new CompiledExpression('bool', $this->_zvalStringOperator . '(' . $variableLeft->getName() . ', "")', $expression['left']);
+                        }
+                        break;
+
+                    case 'string':
+                        $compilationContext->headersManager->add('kernel/operators');
+                        if ($variableLeft->isLocalOnly()) {
+                            return new CompiledExpression('bool', $this->_zvalStringOperator . '(&' . $variableLeft->getName() . ', "' . $right->getCode() . '")', $expression['left']);
+                        } else {
+                            return new CompiledExpression('bool', $this->_zvalStringOperator . '(' . $variableLeft->getName() . ', "' . $right->getCode() . '")', $expression['left']);
+                        }
+                        break;
+
+                    case 'variable':
+                        $variableRight = $compilationContext->symbolTable->getVariableForRead($right->getCode(), $compilationContext, $expression['left']);
+                        switch ($variableRight->getType()) {
+
+                            case 'string':
+                            case 'variable':
+                                $compilationContext->headersManager->add('kernel/operators');
+                                if ($variableLeft->isLocalOnly()) {
+                                    return new CompiledExpression('bool', $this->_zvalOperator . '(&' . $variableLeft->getName() . ', ' . $variableRight->getName() . ')', $expression);
+                                } else {
+                                    return new CompiledExpression('bool', $this->_zvalOperator . '(' . $variableLeft->getName() . ', ' . $variableRight->getName() . ')', $expression);
+                                }
+                                break;
+
+                            default:
+                                throw new CompilerException("Unknown type: " . $variableRight->getType(), $expression['right']);
+                        }
+                        break;
+
+                    default:
+                        throw new CompilerException("Unknown type: " . $right->getType(), $expression['left']);
+                }
+                break;
+
             case 'variable':
 
                 $variable = $compilationContext->symbolTable->getVariableForRead($left->getCode(), $compilationContext, $expression['left']);
@@ -352,6 +484,9 @@ class ComparisonBaseOperator extends BaseOperator
                             case 'ulong':
                                 return new CompiledExpression('bool', $left->getCode() . ' ' . $this->_operator . ' ' . $right->getCode(), $expression);
 
+                            case 'double':
+                                return new CompiledExpression('bool', $left->getCode() . ' ' . $this->_operator . ' ' . $right->getCode(), $expression);
+
                             case 'char':
                             case 'uchar':
                                 return new CompiledExpression('bool', $left->getCode() . ' ' . $this->_operator . ' \'' . $right->getCode() . '\'', $expression);
@@ -360,7 +495,6 @@ class ComparisonBaseOperator extends BaseOperator
                                 return new CompiledExpression('bool', $left->getCode() . ' ' . $this->_operator . ' ' . $right->getBooleanCode(), $expression);
 
                             case 'variable':
-
                                 $variableRight = $compilationContext->symbolTable->getVariableForRead($right->getCode(), $compilationContext, $expression['left']);
                                 switch ($variableRight->getType()) {
 
@@ -375,7 +509,12 @@ class ComparisonBaseOperator extends BaseOperator
 
                                     case 'variable':
                                         $compilationContext->headersManager->add('kernel/operators');
-                                        return new CompiledExpression('bool', $this->_zvalLongNegOperator . '(' . $variableRight->getName() . ', ' . $variable->getName() . ')', $expression);
+                                        if ($variableRight->isLocalOnly()) {
+                                            return new CompiledExpression('bool', $this->_zvalLongNegOperator . '(&' . $variableRight->getName() . ', ' . $variable->getName() . ')', $expression);
+                                        } else {
+                                            return new CompiledExpression('bool', $this->_zvalLongNegOperator . '(' . $variableRight->getName() . ', ' . $variable->getName() . ')', $expression);
+                                        }
+                                        break;
 
                                     default:
                                         throw new CompilerException("Unknown type: " . $variableRight->getType(), $expression['right']);
@@ -469,6 +608,43 @@ class ComparisonBaseOperator extends BaseOperator
 
                             default:
                                 throw new CompilerException("Cannot compare variable: " . $variable->getType() . " with: " . $right->getType(), $expression);
+                        }
+                        break;
+
+                    case 'array':
+                        switch ($right->getType()) {
+
+                            case 'null':
+                                $compilationContext->headersManager->add('kernel/operators');
+                                if ($variable->isLocalOnly()) {
+                                    return new CompiledExpression('bool', $this->_zvalStringOperator . '(&' . $variable->getName() . ', "")', $expression['left']);
+                                } else {
+                                    return new CompiledExpression('bool', $this->_zvalStringOperator . '(' . $variable->getName() . ', "")', $expression['left']);
+                                }
+                                break;
+
+                            case 'variable':
+                                $variableRight = $compilationContext->symbolTable->getVariableForRead($right->getCode(), $compilationContext, $expression['left']);
+                                switch ($variableRight->getType()) {
+
+                                    case 'string':
+                                    case 'variable':
+                                    case 'array':
+                                        $compilationContext->headersManager->add('kernel/operators');
+                                        if ($variable->isLocalOnly()) {
+                                            return new CompiledExpression('bool', $this->_zvalOperator . '(&' . $variable->getName() . ', ' . $variableRight->getName() . ')', $expression);
+                                        } else {
+                                            return new CompiledExpression('bool', $this->_zvalOperator . '(' . $variable->getName() . ', ' . $variableRight->getName() . ')', $expression);
+                                        }
+                                        break;
+
+                                    default:
+                                        throw new CompilerException("Unknown type: " . $variableRight->getType(), $expression['right']);
+                                }
+                                break;
+
+                            default:
+                                throw new CompilerException("Unknown type: " . $right->getType(), $expression['left']);
                         }
                         break;
 
@@ -603,6 +779,7 @@ class ComparisonBaseOperator extends BaseOperator
 
                                     case 'string':
                                     case 'variable':
+                                    case 'array':
                                         $compilationContext->headersManager->add('kernel/operators');
                                         if ($variable->isLocalOnly()) {
                                             return new CompiledExpression('bool', $this->_zvalOperator . '(&' . $variable->getName() . ', ' . $variableRight->getName() . ')', $expression);

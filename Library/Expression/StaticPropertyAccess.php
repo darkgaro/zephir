@@ -71,14 +71,14 @@ class StaticPropertyAccess
     public function compile($expression, CompilationContext $compilationContext)
     {
         $className = $expression['left']['value'];
-        $compiler = &$compilationContext->compiler;
+        $compiler = $compilationContext->compiler;
         $property = $expression['right']['value'];
 
         /**
          * Fetch the class definition according to the class where the constant
          * is supposed to be declared
          */
-        if ($className != 'self' && $className != 'parent') {
+        if (!in_array($className, array('self', 'static', 'parent'))) {
             $className = $compilationContext->getFullName($className);
             if ($compiler->isClass($className)) {
                 $classDefinition = $compiler->getClassDefinition($className);
@@ -90,7 +90,7 @@ class StaticPropertyAccess
                 }
             }
         } else {
-            if ($className == 'self') {
+            if (in_array($className, array('self', 'static'))) {
                 $classDefinition = $compilationContext->classDefinition;
             } else {
                 if ($className == 'parent') {
@@ -133,9 +133,7 @@ class StaticPropertyAccess
         if ($this->_expecting) {
             if ($this->_expectingVariable) {
                 $symbolVariable = $this->_expectingVariable;
-                if ($symbolVariable->getName() != 'return_value') {
-                    $symbolVariable->observeVariant($compilationContext);
-                } else {
+                if ($symbolVariable->getName() == 'return_value') {
                     $symbolVariable = $compilationContext->symbolTable->getTempNonTrackedVariable('variable', $compilationContext);
                 }
             } else {
@@ -148,7 +146,7 @@ class StaticPropertyAccess
         /**
          * Variable that receives property accesses must be polimorphic
          */
-        if ($symbolVariable->getType() != 'variable') {
+        if (!$symbolVariable->isVariable()) {
             throw new CompilerException("Cannot use variable: " . $symbolVariable->getType() . " to assign class constants", $expression);
         }
 
@@ -160,9 +158,15 @@ class StaticPropertyAccess
             if ($this->_readOnly) {
                 $compilationContext->codePrinter->output($symbolVariable->getName() . ' = zephir_fetch_static_property_ce(' . $classDefinition->getClassEntry() . ', SL("' . $property . '") TSRMLS_CC);');
             } else {
+                if ($symbolVariable->getName() != 'return_value') {
+                    $symbolVariable->observeVariant($compilationContext);
+                }
                 $compilationContext->codePrinter->output('zephir_read_static_property_ce(&' . $symbolVariable->getName() . ', ' . $classDefinition->getClassEntry() . ', SL("' . $property . '") TSRMLS_CC);');
             }
         } else {
+            if ($symbolVariable->getName() != 'return_value') {
+                $symbolVariable->observeVariant($compilationContext);
+            }
             $compilationContext->codePrinter->output('zephir_read_static_property_ce(&' . $symbolVariable->getName() . ', ' . $classDefinition->getClassEntry() . ', SL("' . $property . '") TSRMLS_CC);');
         }
 

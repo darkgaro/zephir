@@ -212,4 +212,24 @@ class Mcall
 	{
 		return driverOptions;
 	}
+
+	public function arrayParamWithDefaultNullValue(array driverOptions = null)
+	{
+		return driverOptions;
+	}
+
+	public function arrayParam(array driverOptions)
+	{
+		return driverOptions;
+	}
+
+	public function objectParamCastStdClass(<\StdClass> param)
+	{
+		return param;
+	}
+
+	public function objectParamCastOoParam(<Oo\Param> param)
+	{
+		return param;
+	}
 }

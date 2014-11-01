@@ -19,6 +19,8 @@
 
 namespace Zephir;
 
+use Zephir\HeadersManager;
+
 /**
  * ClassDefinition
  *
@@ -26,8 +28,14 @@ namespace Zephir;
  */
 class ClassDefinition
 {
+    /**
+     * @var string
+     */
     protected $namespace;
 
+    /**
+     * @var string
+     */
     protected $name;
 
     /**
@@ -35,18 +43,40 @@ class ClassDefinition
      */
     protected $type = 'class';
 
+    /**
+     * @var string
+     */
     protected $extendsClass;
 
+    /**
+     * @var array
+     */
     protected $interfaces;
 
+    /**
+     * @var bool
+     */
     protected $final;
 
+    /**
+     * @var bool
+     */
     protected $abstract;
+
+    /**
+     * @var bool
+     */
+    protected $external = false;
 
     /**
      * @var ClassDefinition
      */
     protected $extendsClassDefinition;
+
+    /**
+     * @var ClassDefinition[]
+     */
+    protected $implementedInterfaceDefinitions;
 
     /**
      * @var ClassProperty[]
@@ -102,13 +132,33 @@ class ClassDefinition
     }
 
     /**
-     * Returns if the class is internal or not
+     * Returns whether the class is internal or not
      *
      * @return bool
      */
     public function isInternal()
     {
         return $this->isInternal;
+    }
+
+    /**
+     * Sets whether the class is external or not
+     *
+     * @param boolean $isExternal
+     */
+    public function setIsExternal($isExternal)
+    {
+        $this->external = $isExternal;
+    }
+
+    /**
+     * Returns whether the class is internal or not
+     *
+     * @return bool
+     */
+    public function isExternal()
+    {
+        return $this->external;
     }
 
     /**
@@ -142,16 +192,6 @@ class ClassDefinition
     }
 
     /**
-     * Check if the class definition correspond to an interface
-     *
-     * @return boolean
-     */
-    public function isInterface()
-    {
-        return $this->type == 'interface';
-    }
-
-    /**
      * Returns the class name without namespace
      *
      * @return string
@@ -162,13 +202,23 @@ class ClassDefinition
     }
 
     /**
+     * Check if the class definition correspond to an interface
+     *
+     * @return boolean
+     */
+    public function isInterface()
+    {
+        return $this->type == 'interface';
+    }
+
+    /**
      * Sets if the class is final
      *
      * @param boolean $final
      */
     public function setIsFinal($final)
     {
-        $this->final = $final;
+        $this->final = (bool) $final;
     }
 
     /**
@@ -178,7 +228,7 @@ class ClassDefinition
      */
     public function setIsAbstract($abstract)
     {
-        $this->abstract = $abstract;
+        $this->abstract = (bool) $abstract;
     }
 
     /**
@@ -188,7 +238,7 @@ class ClassDefinition
      */
     public function isAbstract()
     {
-        return $this->abstract;
+        return $this->abstract || $this->isInterface();
     }
 
     /**
@@ -297,6 +347,26 @@ class ClassDefinition
     }
 
     /**
+     * Sets the class definition for the implemented interfaces
+     *
+     * @param ClassDefinition[] $interfaceDefinitions
+     */
+    public function setImplementedInterfaceDefinitions(array $implementedInterfaceDefinitions)
+    {
+        $this->implementedInterfaceDefinitions = $implementedInterfaceDefinitions;
+    }
+
+    /**
+     * Returns the class definition for the implemented interfaces
+     *
+     * @return ClassDefinition[]
+     */
+    public function getImplementedInterfaceDefinitions()
+    {
+        return $this->implementedInterfaceDefinitions;
+    }
+
+    /**
      * Calculate the dependency rank of the class based on its dependencies
      *
      */
@@ -306,6 +376,14 @@ class ClassDefinition
             $classDefinition = $this->extendsClassDefinition;
             if (method_exists($classDefinition, 'increaseDependencyRank')) {
                 $classDefinition->increaseDependencyRank($this->dependencyRank * 2);
+            }
+        }
+
+        if ($this->implementedInterfaceDefinitions) {
+            foreach ($this->implementedInterfaceDefinitions as $interfaceDefinition) {
+                if (method_exists($interfaceDefinition, 'increaseDependencyRank')) {
+                    $interfaceDefinition->increaseDependencyRank($this->dependencyRank * 2);
+                }
             }
         }
     }
@@ -538,6 +616,8 @@ class ClassDefinition
     }
 
     /**
+     * Set a method and its body
+     *
      * @param $methodName
      * @param ClassMethod $method
      */
@@ -546,18 +626,59 @@ class ClassDefinition
         $this->methods[$methodName] = $method;
     }
 
+    /**
+     * Sets class methods externally
+     *
+     * @param array $methods
+     */
     public function setMethods($methods)
     {
         $this->methods = $methods;
     }
 
     /**
+     * Tries to find the most similar name
+     *
+     * @param string $methodName
+     * @return string|boolean
+     */
+    public function getPossibleMethodName($methodName)
+    {
+        $methodNameLower = strtolower($methodName);
+
+        foreach ($this->methods as $name => $method) {
+            if (metaphone($methodNameLower) == metaphone($name)) {
+                return $method->getName();
+            }
+        }
+
+        $extendsClassDefinition = $this->extendsClassDefinition;
+        if ($extendsClassDefinition) {
+            return $extendsClassDefinition->getPossibleMethodName($methodName);
+        }
+
+        return false;
+    }
+
+    /**
      * Returns the name of the zend_class_entry according to the class name
      *
+     * @param CompilationContext $compilationContext
      * @return string
      */
-    public function getClassEntry()
+    public function getClassEntry(CompilationContext $compilationContext = null)
     {
+        if ($this->external) {
+
+            if (!is_object($compilationContext)) {
+                throw new Exception('A compilation context is required');
+            }
+
+            /**
+             * Automatically add the external header
+             */
+            $compilationContext->headersManager->add($this->getExternalHeader(), HeadersManager::POSITION_LAST);
+        }
         return strtolower(str_replace('\\', '_', $this->namespace) . '_' . $this->name) . '_ce';
     }
 
@@ -593,6 +714,17 @@ class ClassDefinition
     }
 
     /**
+     * Returns an absolute location to the class header
+     *
+     * @return string
+     */
+    public function getExternalHeader()
+    {
+        $parts = explode('\\', $this->namespace);
+        return 'ext/' . strtolower($parts[0] . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $this->namespace) . DIRECTORY_SEPARATOR . $this->name) . '.zep';
+    }
+
+    /**
      * Checks if a class implements an interface
      *
      * @param ClassDefinition $classDefinition
@@ -601,9 +733,18 @@ class ClassDefinition
     public function checkInterfaceImplements($classDefinition, $interfaceDefinition)
     {
         foreach ($interfaceDefinition->getMethods() as $method) {
+
             if (!$classDefinition->hasMethod($method->getName())) {
                 throw new CompilerException("Class " . $classDefinition->getCompleteName() . " must implement method: " . $method->getName() . " defined on interface: " . $interfaceDefinition->getCompleteName());
             }
+
+            if ($method->hasParameters()) {
+                $implementedMethod = $classDefinition->getMethod($method->getName());
+                if ($implementedMethod->getNumberOfRequiredParameters() > $method->getNumberOfRequiredParameters() || $implementedMethod->getNumberOfParameters() < $method->getNumberOfParameters()) {
+                    throw new CompilerException("Class " . $classDefinition->getCompleteName() . "::" . $method->getName() . "() does not have the same number of required parameters in interface: " . $interfaceDefinition->getCompleteName());
+                }
+            }
+
         }
     }
 
@@ -636,7 +777,7 @@ class ClassDefinition
         /**
          * Method entry
          */
-        $methods = &$this->methods;
+        $methods = & $this->methods;
 
         if (count($methods)) {
             $methodEntry = strtolower($this->getCNamespace()) . '_' . strtolower($this->getName()) . '_method_entry';
@@ -646,9 +787,16 @@ class ClassDefinition
 
         $namespace = str_replace('\\', '_', $compilationContext->config->get('namespace'));
 
-        $abstractFlag = '0';
+        $flags = '0';
         if ($this->isAbstract()) {
-            $abstractFlag = 'ZEND_ACC_EXPLICIT_ABSTRACT_CLASS';
+            $flags = 'ZEND_ACC_EXPLICIT_ABSTRACT_CLASS';
+        }
+        if ($this->isFinal()) {
+            if ($flags == '0') {
+                $flags = 'ZEND_ACC_FINAL_CLASS';
+            } else {
+                $flags .= '|ZEND_ACC_FINAL_CLASS';
+            }
         }
 
         /**
@@ -667,7 +815,7 @@ class ClassDefinition
 
             $classExtendsDefinition = $this->extendsClassDefinition;
             if (!$classExtendsDefinition->isInternal()) {
-                $classEntry = $classExtendsDefinition->getClassEntry();
+                $classEntry = $classExtendsDefinition->getClassEntry($compilationContext);
             } else {
 
                 $classEntry = $this->getClassEntryByClassName($classExtendsDefinition->getName(), $compilationContext, $entryClassCheck);
@@ -677,7 +825,7 @@ class ClassDefinition
 
                 if ($this->getType() == 'class') {
                     $classEntry = strtolower(addslashes($classExtendsDefinition->getName()));
-                    $codePrinter->output('ZEPHIR_REGISTER_CLASS_EXTEND(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', "' . $classEntry . '", ' . $methodEntry . ', ' . $abstractFlag . ');');
+                    $codePrinter->output('ZEPHIR_REGISTER_CLASS_EXTEND(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', "' . $classEntry . '", ' . $methodEntry . ', ' . $flags . ');');
                     $codePrinter->outputBlankLine();
                 } else {
                     $classEntry =  $this->getClassEntry($classExtendsDefinition->getName());
@@ -688,7 +836,7 @@ class ClassDefinition
             }
             else {
                 if ($this->getType() == 'class') {
-                    $codePrinter->output('ZEPHIR_REGISTER_CLASS_EX(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $classEntry . ', ' . $methodEntry . ', ' . $abstractFlag . ');');
+                    $codePrinter->output('ZEPHIR_REGISTER_CLASS_EX(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $classEntry . ', ' . $methodEntry . ', ' . $flags . ');');
                     $codePrinter->outputBlankLine();
                 } else {
                     $codePrinter->output('ZEPHIR_REGISTER_INTERFACE_EX(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $classEntry . ', ' . $methodEntry . ');');
@@ -700,7 +848,7 @@ class ClassDefinition
 
         } else {
             if ($this->getType() == 'class') {
-                $codePrinter->output('ZEPHIR_REGISTER_CLASS(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $methodEntry . ', ' . $abstractFlag . ');');
+                $codePrinter->output('ZEPHIR_REGISTER_CLASS(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $methodEntry . ', ' . $flags . ');');
             } else {
                 $codePrinter->output('ZEPHIR_REGISTER_INTERFACE(' . $this->getNCNamespace() . ', ' . $this->getName() . ', ' . $namespace . ', ' . strtolower($this->getSCName($namespace)) . ', ' . $methodEntry . ');');
             }
@@ -716,7 +864,6 @@ class ClassDefinition
 
         $this->eventsManager->listen('setMethod', function (ClassMethod $method) use (&$methods, &$currentClassHref, $compilationContext, &$needBreak) {
             $needBreak = false;
-
             $methods[$method->getName()] = $method;
             $compilationContext->classDefinition->setMethods($methods);
         });
@@ -773,7 +920,7 @@ class ClassDefinition
 
                 if ($compiler->isInterface($interface)) {
                     $classInterfaceDefinition = $compiler->getClassDefinition($interface);
-                    $classEntry = $classInterfaceDefinition->getClassEntry();
+                    $classEntry = $classInterfaceDefinition->getClassEntry($compilationContext);
                 } else {
                     if ($compiler->isInternalInterface($interface)) {
                         $classInterfaceDefinition = $compiler->getInternalClassDefinition($interface);
@@ -794,7 +941,11 @@ class ClassDefinition
                 }
 
                 if (!$classEntry) {
-                    throw new CompilerException("Cannot locate interface " . $interface . " when implementing interfaces on " . $this->getCompleteName(), $this->originalNode);
+                    if ($compiler->isClass($interface)) {
+                        throw new CompilerException("Cannot locate interface " . $interface . " when implementing interfaces on " . $this->getCompleteName() . '. ' . $interface . ' is currently a class', $this->originalNode);
+                    } else {
+                        throw new CompilerException("Cannot locate interface " . $interface . " when implementing interfaces on " . $this->getCompleteName(), $this->originalNode);
+                    }
                 }
 
                 /**
@@ -882,12 +1033,22 @@ class ClassDefinition
         }
 
         /**
+         * Check whether classes must be exported
+         */
+        $exportClasses = $compilationContext->config->get('export-classes', 'extra');
+        if ($exportClasses) {
+            $exportAPI = 'extern ZEPHIR_API';
+        } else {
+            $exportAPI = 'extern';
+        }
+
+        /**
          * Create a code printer for the header file
          */
         $codePrinter = new CodePrinter();
 
         $codePrinter->outputBlankLine();
-        $codePrinter->output('extern zend_class_entry *' . $this->getClassEntry() . ';');
+        $codePrinter->output($exportAPI . ' zend_class_entry *' . $this->getClassEntry() . ';');
         $codePrinter->outputBlankLine();
 
         $codePrinter->output('ZEPHIR_INIT_CLASS(' . $this->getCNamespace() . '_' . $this->getName() . ');');
@@ -911,7 +1072,34 @@ class ClassDefinition
             if (count($parameters)) {
                 $codePrinter->output('ZEND_BEGIN_ARG_INFO_EX(arginfo_' . strtolower($this->getCNamespace() . '_' . $this->getName() . '_' . $method->getName()) . ', 0, 0, ' . $method->getNumberOfRequiredParameters() . ')');
                 foreach ($parameters->getParameters() as $parameter) {
-                    $codePrinter->output("\t" . 'ZEND_ARG_INFO(0, ' . $parameter['name'] . ')');
+                    switch ($parameter['data-type']) {
+
+                        case 'array':
+                            $codePrinter->output("\t" . 'ZEND_ARG_ARRAY_INFO(0, ' . $parameter['name'] . ', ' . (isset($parameter['default']) ? 1 : 0) . ')');
+                            break;
+
+                        case 'variable':
+                            if (isset($parameter['cast'])) {
+
+                                switch ($parameter['cast']['type']) {
+                                    case 'variable':
+                                        $value = $parameter['cast']['value'];
+                                        $codePrinter->output("\t" . 'ZEND_ARG_OBJ_INFO(0, ' . $parameter['name'] . ', ' . Utils::escapeClassName($compilationContext->getFullName($value)) . ', ' . (isset($parameter['default']) ? 1 : 0) . ')');
+                                        break;
+
+                                    default:
+                                        throw new Exception('Unexpected exception');
+                                }
+
+                            } else {
+                                $codePrinter->output("\t" . 'ZEND_ARG_INFO(0, ' . $parameter['name'] . ')');
+                            }
+                            break;
+
+                        default:
+                            $codePrinter->output("\t" . 'ZEND_ARG_INFO(0, ' . $parameter['name'] . ')');
+                            break;
+                    }
                 }
                 $codePrinter->output('ZEND_END_ARG_INFO()');
                 $codePrinter->outputBlankLine();
@@ -964,6 +1152,7 @@ class ClassDefinition
     public function getClassEntryByClassName($className, $compilationContext, $check = false)
     {
         switch (strtolower($className)) {
+
             /**
              * Zend classes
              */
@@ -977,12 +1166,15 @@ class ClassDefinition
             case 'iterator':
                 $classEntry = 'zend_ce_iterator';
                 break;
+
             case 'arrayaccess':
                 $classEntry = 'zend_ce_arrayaccess';
                 break;
+
             case 'serializable':
                 $classEntry = 'zend_ce_serializable';
                 break;
+
             case 'iteratoraggregate':
                 $classEntry = 'zend_ce_aggregate';
                 break;
@@ -993,39 +1185,51 @@ class ClassDefinition
             case 'logicexception':
                 $classEntry = 'spl_ce_LogicException';
                 break;
+
             case 'badfunctioncallexception':
                 $classEntry = 'spl_ce_BadFunctionCallException';
                 break;
+
             case 'badmethodcallexception':
                 $classEntry = 'spl_ce_BadMethodCallException';
                 break;
+
             case 'domainexception':
                 $classEntry = 'spl_ce_DomainException';
                 break;
+
             case 'invalidargumentexception':
                 $classEntry = 'spl_ce_InvalidArgumentException';
                 break;
+
             case 'lengthexception':
                 $classEntry = 'spl_ce_LengthException';
                 break;
+
             case 'outofrangeexception':
                 $classEntry = 'spl_ce_OutOfRangeException';
                 break;
+
             case 'runtimeexception':
                 $classEntry = 'spl_ce_RuntimeException';
                 break;
+
             case 'outofboundsexception':
                 $classEntry = 'spl_ce_OutOfBoundsException';
                 break;
+
             case 'overflowexception':
                 $classEntry = 'spl_ce_OverflowException';
                 break;
+
             case 'rangeexception':
                 $classEntry = 'spl_ce_RangeException';
                 break;
+
             case 'underflowexception':
                 $classEntry = 'spl_ce_UnderflowException';
                 break;
+
             case 'unexpectedvalueexception':
                 $classEntry = 'spl_ce_UnexpectedValueException';
                 break;
@@ -1036,54 +1240,71 @@ class ClassDefinition
             case 'recursiveiterator':
                 $classEntry = 'spl_ce_RecursiveIterator';
                 break;
+
             case 'recursiveiteratoriterator':
                 $classEntry = 'spl_ce_RecursiveIteratorIterator';
                 break;
+
             case 'recursivetreeiterator':
                 $classEntry = 'spl_ce_RecursiveTreeIterator';
                 break;
+
             case 'filteriterator':
                 $classEntry = 'spl_ce_FilterIterator';
                 break;
+
             case 'recursivefilteriterator':
                 $classEntry = 'spl_ce_RecursiveFilterIterator';
                 break;
+
             case 'parentiterator':
                 $classEntry = 'spl_ce_ParentIterator';
                 break;
+
             case 'seekableiterator':
                 $classEntry = 'spl_ce_SeekableIterator';
                 break;
+
             case 'limititerator':
                 $classEntry = 'spl_ce_LimitIterator';
                 break;
+
             case 'cachingiterator':
                 $classEntry = 'spl_ce_CachingIterator';
                 break;
+
             case 'recursivecachingiterator':
                 $classEntry = 'spl_ce_RecursiveCachingIterator';
                 break;
+
             case 'outeriterator':
                 $classEntry = 'spl_ce_OuterIterator';
                 break;
+
             case 'iteratoriterator':
                 $classEntry = 'spl_ce_IteratorIterator';
                 break;
+
             case 'norewinditerator':
                 $classEntry = 'spl_ce_NoRewindIterator';
                 break;
+
             case 'infiniteiterator':
                 $classEntry = 'spl_ce_InfiniteIterator';
                 break;
+
             case 'emptyiterator':
                 $classEntry = 'spl_ce_EmptyIterator';
                 break;
+
             case 'appenditerator':
                 $classEntry = 'spl_ce_AppendIterator';
                 break;
+
             case 'regexiterator':
                 $classEntry = 'spl_ce_RegexIterator';
                 break;
+
             case 'recursiveregexiterator':
                 $classEntry = 'spl_ce_RecursiveRegexIterator';
                 break;
@@ -1093,12 +1314,40 @@ class ClassDefinition
                 $compilationContext->headersManager->add('ext/spl/spl_directory');
                 $classEntry = 'spl_ce_DirectoryIterator';
                 break;
+
+            case 'filesystemiterator':
+                $compilationContext->headersManager->add('ext/spl/spl_directory');
+                $classEntry = 'spl_ce_FilesystemIterator';
+                break;
+
+            case 'recursivedirectoryiterator':
+                $compilationContext->headersManager->add('ext/spl/spl_directory');
+                $classEntry = 'spl_ce_RecursiveDirectoryIterator';
+                break;
+
+            case 'globiterator':
+                $compilationContext->headersManager->add('ext/spl/spl_directory');
+                $classEntry = 'spl_ce_GlobIterator';
+                break;
+
+            case 'splfileobject':
+                $compilationContext->headersManager->add('ext/spl/spl_directory');
+                $classEntry = 'spl_ce_SplFileObject';
+                break;
+
+            case 'spltempfileobject':
+                $compilationContext->headersManager->add('ext/spl/spl_directory');
+                $classEntry = 'spl_ce_SplTempFileObject';
+                break;
+
             case 'countable':
                 $classEntry = 'spl_ce_Countable';
                 break;
+
             case 'callbackfilteriterator':
                 $classEntry = 'spl_ce_CallbackFilterIterator';
                 break;
+
             case 'recursivecallbackfilteriterator':
                 $classEntry = 'spl_ce_RecursiveCallbackFilterIterator';
                 break;
@@ -1112,25 +1361,51 @@ class ClassDefinition
                 $compilationContext->headersManager->add('ext/spl/spl_fixedarray');
                 $classEntry = 'spl_ce_SplFixedArray';
                 break;
+
             case 'splpriorityqueue':
                 $compilationContext->headersManager->add('ext/spl/spl_heap');
                 $classEntry = 'spl_ce_SplPriorityQueue';
                 break;
+
+            case 'splfileinfo':
+                $compilationContext->headersManager->add('ext/spl/spl_directory');
+                $classEntry = 'spl_ce_SplFileInfo';
+                break;
+
             case 'splheap':
                 $compilationContext->headersManager->add('ext/spl/spl_heap');
                 $classEntry = 'spl_ce_SplHeap';
                 break;
+
             case 'splminheap':
                 $compilationContext->headersManager->add('ext/spl/spl_heap');
                 $classEntry = 'spl_ce_SplMinHeap';
                 break;
+
             case 'splmaxheap':
                 $compilationContext->headersManager->add('ext/spl/spl_heap');
                 $classEntry = 'spl_ce_SplMaxHeap';
                 break;
+
+            case 'splstack':
+                $compilationContext->headersManager->add('ext/spl/spl_dllist');
+                $classEntry = 'spl_ce_SplStack';
+                break;
+
+            case 'splqueue':
+                $compilationContext->headersManager->add('ext/spl/spl_dllist');
+                $classEntry = 'spl_ce_SplQueue';
+                break;
+
+            case 'spldoublylinkedlist':
+                $compilationContext->headersManager->add('ext/spl/spl_dllist');
+                $classEntry = 'spl_ce_SplDoublyLinkedList';
+                break;
+
             case 'stdclass':
                 $classEntry = 'zend_standard_class_def';
                 break;
+
             case 'closure':
                 $compilationContext->headersManager->add('Zend/zend_closures');
                 $classEntry = 'zend_ce_closure';
@@ -1140,14 +1415,66 @@ class ClassDefinition
                 $compilationContext->headersManager->add('ext/pdo/php_pdo_driver');
                 $classEntry = 'php_pdo_get_dbh_ce()';
                 break;
+
             case 'pdostatement':
                 $compilationContext->headersManager->add('kernel/main');
                 $classEntry = 'zephir_get_internal_ce(SS("pdostatement") TSRMLS_CC)';
                 break;
+
             case 'pdoexception':
                 $compilationContext->headersManager->add('ext/pdo/php_pdo_driver');
                 $classEntry = 'php_pdo_get_exception()';
                 break;
+
+            // Reflection
+            /*case 'reflector':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflector_ptr';
+                break;
+            case 'reflectionexception':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_exception_ptr';
+                break;
+            case 'reflection':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_ptr';
+                break;
+            case 'reflectionfunctionabstract':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_function_abstract_ptr';
+                break;
+            case 'reflectionfunction':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_function_ptr';
+                break;
+            case 'reflectionparameter':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_parameter_ptr';
+                break;
+            case 'reflectionclass':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_class_ptr';
+                break;
+            case 'reflectionobject':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_object_ptr';
+                break;
+            case 'reflectionmethod':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_method_ptr';
+                break;
+            case 'reflectionproperty':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_property_ptr';
+                break;
+            case 'reflectionextension':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_extension_ptr';
+                break;
+            case 'reflectionzendextension':
+                $compilationContext->headersManager->add('ext/reflection/php_reflection');
+                $classEntry = 'reflection_zend_extension_ptr';
+                break;*/
 
             default:
                 if (!$check) {
@@ -1156,6 +1483,7 @@ class ClassDefinition
                     return false;
                 }
         }
+
         return $classEntry;
     }
 
@@ -1174,7 +1502,7 @@ class ClassDefinition
                 $parameters = array();
 
                 foreach ($method->getParameters() as $row) {
-                        $parameters[] = array(
+                    $parameters[] = array(
                         'type' => 'parameter',
                         'name' => $row->getName(),
                         'const' => 0,
@@ -1209,11 +1537,11 @@ class ClassDefinition
     private static function _convertPhpConstantType($phpType)
     {
         $map = array(
-            'boolean'    => 'bool',
-            'integer'    => 'int',
-            'double'    => 'double',
-            'string'    => 'string',
-            'NULL'        => 'null',
+            'boolean' => 'bool',
+            'integer' => 'int',
+            'double' => 'double',
+            'string' => 'string',
+            'NULL' => 'null',
         );
 
         if (!isset($map[$phpType])) {

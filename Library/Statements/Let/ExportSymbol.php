@@ -32,7 +32,7 @@ use Zephir\GlobalConstant;
 /**
  * ExportSymbol
  *
- * Exports symbol to a
+ * Exports a symbol to the current PHP symbol table using a variable as parameter
  */
 class ExportSymbol
 {
@@ -51,7 +51,7 @@ class ExportSymbol
         $codePrinter = $compilationContext->codePrinter;
 
         $codePrinter->output('if (zephir_set_symbol(' . $symbolVariable->getName() . ', ' . $resolvedExpr->getCode() . ' TSRMLS_CC) == FAILURE){');
-        $codePrinter->output('  return;');
+        $codePrinter->output("\t" . 'return;');
         $codePrinter->output('}');
     }
 }

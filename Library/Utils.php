@@ -27,10 +27,22 @@ namespace Zephir;
 class Utils
 {
     /**
+     * Prepares a class name to be used as a C-string
+     *
+     * @param string $className
+     * @return string
+     */
+    public static function escapeClassName($className)
+    {
+        return str_replace('\\', '\\\\', $className);
+    }
+
+    /**
      * Prepares a string to be used as a C-string
      *
      * @param string $str
      * @param bool $escapeSlash
+     * @param int $type
      * @return string
      */
     public static function addSlashes($str, $escapeSlash = false, $type = Types::STRING)
@@ -43,12 +55,13 @@ class Utils
         }
 
         if ($escapeSlash) {
-            $str = addslashes($str);
+            $str = addcslashes($str, '"\\');
         }
 
-        $str = str_replace("\n", "\\n", $str);
+        /*$str = str_replace("\n", "\\n", $str);
         $str = str_replace("\r", "\\r", $str);
         $str = str_replace("\t", "\\t", $str);
+        $str = str_replace("\v", "\\v", $str);*/
 
         //$str = preg_replace('#\\\\([^nrt"])#', '\\\\$1', $str);
 
@@ -76,10 +89,10 @@ class Utils
     public static function checkAndWriteIfNeeded($content, $path)
     {
         if (file_exists($path)) {
-            $content_md5 = md5($content);
-            $existing_md5 = md5_file($path);
+            $contentMd5 = md5($content);
+            $existingMd5 = md5_file($path);
 
-            if ($content_md5 != $existing_md5) {
+            if ($contentMd5 != $existingMd5) {
                 file_put_contents($path, $content);
                 return true;
             }
@@ -95,6 +108,8 @@ class Utils
      * Transform class/interface name to FQN format
      *
      * @param string $className
+     * @param string $currentNamespace
+     * @param AliasManager $aliasManager
      * @return string
      */
     public static function getFullName($className, $currentNamespace, AliasManager $aliasManager = null)
@@ -119,10 +134,14 @@ class Utils
             }
 
             // Relative class/interface name
-            return $currentNamespace . '\\' . $className;
-        } else {
-            // Absolute class/interface name
-            return substr($className, 1);
+            if ($currentNamespace) {
+                return $currentNamespace . '\\' . $className;
+            } else {
+                return $className;
+            }
         }
+
+        // Absolute class/interface name
+        return substr($className, 1);
     }
 }

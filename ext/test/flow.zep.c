@@ -671,7 +671,7 @@ PHP_METHOD(Test_Flow, testWhileNextTest) {
 		ZEPHIR_CALL_FUNCTION(&_2, "current", &_3, variable);
 		Z_UNSET_ISREF_P(variable);
 		zephir_check_call_status();
-		zephir_array_append(&returnValue, _2, PH_SEPARATE);
+		zephir_array_append(&returnValue, _2, PH_SEPARATE, "test/flow.zep", 420);
 	}
 	RETURN_CCTOR(returnValue);
 
@@ -695,7 +695,7 @@ PHP_METHOD(Test_Flow, testWhileDoNextTest) {
 		ZEPHIR_CALL_FUNCTION(&_0, "current", &_1, variable);
 		Z_UNSET_ISREF_P(variable);
 		zephir_check_call_status();
-		zephir_array_append(&returnValue, _0, PH_SEPARATE);
+		zephir_array_append(&returnValue, _0, PH_SEPARATE, "test/flow.zep", 430);
 		Z_SET_ISREF_P(variable);
 		ZEPHIR_CALL_FUNCTION(&_0, "next", &_2, variable);
 		Z_UNSET_ISREF_P(variable);
@@ -710,7 +710,7 @@ PHP_METHOD(Test_Flow, testFor1) {
 	HashTable *_2;
 	HashPosition _1;
 	int c;
-	zval *v = NULL, *b, *_0, **_3;
+	zval *v = NULL, *b, *_0 = NULL, **_3;
 
 	ZEPHIR_MM_GROW();
 
@@ -720,16 +720,16 @@ PHP_METHOD(Test_Flow, testFor1) {
 	ZEPHIR_INIT_VAR(_0);
 	ZVAL_LONG(_0, 1);
 	zephir_array_fast_append(b, _0);
-	ZEPHIR_INIT_BNVAR(_0);
+	ZEPHIR_INIT_NVAR(_0);
 	ZVAL_LONG(_0, 2);
 	zephir_array_fast_append(b, _0);
-	ZEPHIR_INIT_BNVAR(_0);
+	ZEPHIR_INIT_NVAR(_0);
 	ZVAL_LONG(_0, 3);
 	zephir_array_fast_append(b, _0);
-	ZEPHIR_INIT_BNVAR(_0);
+	ZEPHIR_INIT_NVAR(_0);
 	ZVAL_LONG(_0, 4);
 	zephir_array_fast_append(b, _0);
-	zephir_is_iterable(b, &_2, &_1, 0, 0);
+	zephir_is_iterable(b, &_2, &_1, 0, 0, "test/flow.zep", 443);
 	for (
 	  ; zephir_hash_get_current_data_ex(_2, (void**) &_3, &_1) == SUCCESS
 	  ; zephir_hash_move_forward_ex(_2, &_1)
@@ -746,7 +746,7 @@ PHP_METHOD(Test_Flow, testFor2) {
 	HashTable *_2;
 	HashPosition _1;
 	double c;
-	zval *v = NULL, *k = NULL, *b, *_0, **_3;
+	zval *v = NULL, *k = NULL, *b, *_0 = NULL, **_3;
 
 	ZEPHIR_MM_GROW();
 
@@ -756,16 +756,16 @@ PHP_METHOD(Test_Flow, testFor2) {
 	ZEPHIR_INIT_VAR(_0);
 	ZVAL_LONG(_0, 1);
 	zephir_array_fast_append(b, _0);
-	ZEPHIR_INIT_BNVAR(_0);
+	ZEPHIR_INIT_NVAR(_0);
 	ZVAL_LONG(_0, 2);
 	zephir_array_fast_append(b, _0);
-	ZEPHIR_INIT_BNVAR(_0);
+	ZEPHIR_INIT_NVAR(_0);
 	ZVAL_LONG(_0, 3);
 	zephir_array_fast_append(b, _0);
-	ZEPHIR_INIT_BNVAR(_0);
+	ZEPHIR_INIT_NVAR(_0);
 	ZVAL_LONG(_0, 4);
 	zephir_array_fast_append(b, _0);
-	zephir_is_iterable(b, &_2, &_1, 0, 0);
+	zephir_is_iterable(b, &_2, &_1, 0, 0, "test/flow.zep", 453);
 	for (
 	  ; zephir_hash_get_current_data_ex(_2, (void**) &_3, &_1) == SUCCESS
 	  ; zephir_hash_move_forward_ex(_2, &_1)
@@ -782,7 +782,7 @@ PHP_METHOD(Test_Flow, testFor3) {
 
 	HashTable *_2;
 	HashPosition _1;
-	zval *v = NULL, *b, *c, *_0, **_3;
+	zval *v = NULL, *b, *c, *_0 = NULL, **_3;
 
 	ZEPHIR_MM_GROW();
 
@@ -793,22 +793,22 @@ PHP_METHOD(Test_Flow, testFor3) {
 	ZEPHIR_INIT_VAR(_0);
 	ZVAL_LONG(_0, 1);
 	zephir_array_fast_append(b, _0);
-	ZEPHIR_INIT_BNVAR(_0);
+	ZEPHIR_INIT_NVAR(_0);
 	ZVAL_LONG(_0, 2);
 	zephir_array_fast_append(b, _0);
-	ZEPHIR_INIT_BNVAR(_0);
+	ZEPHIR_INIT_NVAR(_0);
 	ZVAL_LONG(_0, 3);
 	zephir_array_fast_append(b, _0);
-	ZEPHIR_INIT_BNVAR(_0);
+	ZEPHIR_INIT_NVAR(_0);
 	ZVAL_LONG(_0, 4);
 	zephir_array_fast_append(b, _0);
-	zephir_is_iterable(b, &_2, &_1, 0, 1);
+	zephir_is_iterable(b, &_2, &_1, 0, 1, "test/flow.zep", 464);
 	for (
 	  ; zephir_hash_get_current_data_ex(_2, (void**) &_3, &_1) == SUCCESS
 	  ; zephir_hash_move_backwards_ex(_2, &_1)
 	) {
 		ZEPHIR_GET_HVALUE(v, _3);
-		zephir_array_append(&c, v, PH_SEPARATE);
+		zephir_array_append(&c, v, PH_SEPARATE, "test/flow.zep", 462);
 	}
 	RETURN_CCTOR(c);
 
@@ -1465,7 +1465,7 @@ PHP_METHOD(Test_Flow, testFor24) {
 	HashPosition _2;
 	zval *_0;
 	zval *b;
-	zval *a = NULL, *_1, **_4;
+	zval *a = NULL, *_1 = NULL, **_4;
 
 	ZEPHIR_MM_GROW();
 
@@ -1476,16 +1476,16 @@ PHP_METHOD(Test_Flow, testFor24) {
 	ZEPHIR_INIT_VAR(_1);
 	ZVAL_LONG(_1, 'a');
 	zephir_array_fast_append(_0, _1);
-	ZEPHIR_INIT_BNVAR(_1);
+	ZEPHIR_INIT_NVAR(_1);
 	ZVAL_LONG(_1, 'b');
 	zephir_array_fast_append(_0, _1);
-	ZEPHIR_INIT_BNVAR(_1);
+	ZEPHIR_INIT_NVAR(_1);
 	ZVAL_LONG(_1, 'c');
 	zephir_array_fast_append(_0, _1);
-	ZEPHIR_INIT_BNVAR(_1);
+	ZEPHIR_INIT_NVAR(_1);
 	ZVAL_LONG(_1, 'd');
 	zephir_array_fast_append(_0, _1);
-	zephir_is_iterable(_0, &_3, &_2, 0, 0);
+	zephir_is_iterable(_0, &_3, &_2, 0, 0, "test/flow.zep", 674);
 	for (
 	  ; zephir_hash_get_current_data_ex(_3, (void**) &_4, &_2) == SUCCESS
 	  ; zephir_hash_move_forward_ex(_3, &_2)
@@ -1514,7 +1514,7 @@ PHP_METHOD(Test_Flow, testFor30) {
 		v = ZEPHIR_STRING_OFFSET(b, _0);
 		ZEPHIR_INIT_NVAR(_1);
 		ZVAL_LONG(_1, v);
-		zephir_array_append(&a, _1, PH_SEPARATE);
+		zephir_array_append(&a, _1, PH_SEPARATE, "test/flow.zep", 682);
 	}
 	RETURN_CCTOR(a);
 
@@ -1556,7 +1556,7 @@ PHP_METHOD(Test_Flow, testFor32) {
 
 
 
-	zephir_is_iterable(e, &_1, &_0, 0, 0);
+	zephir_is_iterable(e, &_1, &_0, 0, 0, "test/flow.zep", 703);
 	for (
 	  ; zephir_hash_get_current_data_ex(_1, (void**) &_2, &_0) == SUCCESS
 	  ; zephir_hash_move_forward_ex(_1, &_0)
@@ -1591,7 +1591,7 @@ PHP_METHOD(Test_Flow, testFor33) {
 		_0->funcs->get_current_data(_0, &tmp TSRMLS_CC);
 		v = *tmp;
 		}
-		zephir_array_append(&result, v, PH_SEPARATE);
+		zephir_array_append(&result, v, PH_SEPARATE, "test/flow.zep", 710);
 	}
 	_0->funcs->dtor(_0 TSRMLS_CC);
 	RETURN_CCTOR(result);
@@ -1630,7 +1630,7 @@ PHP_METHOD(Test_Flow, testFor34) {
 			_1->funcs->get_current_data(_1, &tmp TSRMLS_CC);
 			v = *tmp;
 			}
-			zephir_array_append(&result, v, PH_SEPARATE);
+			zephir_array_append(&result, v, PH_SEPARATE, "test/flow.zep", 720);
 		}
 		_1->funcs->dtor(_1 TSRMLS_CC);
 		RETURN_CCTOR(result);
@@ -1676,7 +1676,7 @@ PHP_METHOD(Test_Flow, testFor35) {
 			ZEPHIR_INIT_NVAR(i);
 			ZVAL_LONG(i, _1);
 			ZEPHIR_INIT_NVAR(_3);
-			ZVAL_STRING(_3, "hello", 0);
+			ZVAL_STRING(_3, "hello", ZEPHIR_TEMP_PARAM_COPY);
 			ZEPHIR_CALL_METHOD(NULL, this_ptr, "testfor35aux", &_4, _3);
 			zephir_check_temp_parameter(_3);
 			zephir_check_call_status();
@@ -1725,7 +1725,7 @@ PHP_METHOD(Test_Flow, testFor36) {
 			ZEPHIR_INIT_NVAR(i);
 			ZVAL_LONG(i, _1);
 			ZEPHIR_INIT_NVAR(_3);
-			ZVAL_STRING(_3, "hello", 0);
+			ZVAL_STRING(_3, "hello", ZEPHIR_TEMP_PARAM_COPY);
 			ZEPHIR_CALL_METHOD(NULL, this_ptr, "testfor36aux", &_4, _3);
 			zephir_check_temp_parameter(_3);
 			zephir_check_call_status();

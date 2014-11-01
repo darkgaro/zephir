@@ -62,6 +62,8 @@ class StringType extends AbstractType
             'nl2br' => 'nl2br',
             'parsecsv' => 'str_getcsv',
             'parsejson' => 'json_decode',
+            'tojson' => 'json_encode',
+            'toutf8' => 'utf8_encode',
             'repeat' => 'str_repeat',
             'shuffle' => 'str_shuffle',
             'split' => 'str_split',
@@ -72,5 +74,16 @@ class StringType extends AbstractType
             'camelize' => 'camelize',
             'uncamelize' => 'uncamelize',
         );
+    }
+
+    /**
+     * Returns the number of the parameter where the object must be bound
+     *
+     * @param $methodName
+     * @return int
+     */
+    protected function getNumberParam($methodName)
+    {
+        return 0;
     }
 }

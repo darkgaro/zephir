@@ -126,7 +126,7 @@ PHP_METHOD(Test_Bench_Foo, write_static) {
 			ZVAL_LONG(i, _1);
 			ZEPHIR_INIT_ZVAL_NREF(_3);
 			ZVAL_LONG(_3, 0);
-			zephir_update_static_property_ce(test_bench_foo_ce, SL("a"), _3 TSRMLS_CC);
+			zephir_update_static_property_ce(test_bench_foo_ce, SL("a"), &_3 TSRMLS_CC);
 		}
 	}
 	ZEPHIR_MM_RESTORE();
@@ -170,7 +170,7 @@ PHP_METHOD(Test_Bench_Foo, empty_static) {
 
 	int _1;
 	zend_bool x, _0;
-	zval *n, *i = NULL, *_2 = NULL, *_3;
+	zval *n, *i = NULL, *_2 = NULL, *_3 = NULL;
 
 	ZEPHIR_MM_GROW();
 	zephir_fetch_params(1, 1, 0, &n);
@@ -192,6 +192,7 @@ PHP_METHOD(Test_Bench_Foo, empty_static) {
 			}
 			ZEPHIR_INIT_NVAR(i);
 			ZVAL_LONG(i, _1);
+			ZEPHIR_OBS_NVAR(_3);
 			zephir_read_static_property_ce(&_3, test_bench_foo_ce, SL("a") TSRMLS_CC);
 			x = ZEPHIR_IS_EMPTY(_3);
 		}
@@ -540,7 +541,7 @@ PHP_METHOD(Test_Bench_Foo, read_const) {
 
 	int _1;
 	zend_bool _0;
-	zval *n, *i = NULL, x = zval_used_for_init, *_2 = NULL;
+	zval *n, *i = NULL, *x = NULL, *_2 = NULL;
 
 	ZEPHIR_MM_GROW();
 	zephir_fetch_params(1, 1, 0, &n);
@@ -562,8 +563,8 @@ PHP_METHOD(Test_Bench_Foo, read_const) {
 			}
 			ZEPHIR_INIT_NVAR(i);
 			ZVAL_LONG(i, _1);
-			ZEPHIR_SINIT_NVAR(x);
-			ZVAL_LONG(&x, 0);
+			ZEPHIR_INIT_NVAR(x);
+			ZVAL_LONG(x, 0);
 		}
 	}
 	ZEPHIR_MM_RESTORE();

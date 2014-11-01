@@ -80,7 +80,7 @@ class StaticConstantAccess
          * Fetch the class definition according to the class where the constant
          * is supposed to be declared
          */
-        if ($className != 'this' && $className != 'self' && $className != 'parent') {
+        if (!in_array($className, array('this', 'self', 'static', 'parent'))) {
             $className = $compilationContext->getFullName($className);
             if ($compiler->isClass($className) || $compiler->isInterface($className)) {
                 $classDefinition = $compiler->getClassDefinition($className);
@@ -92,7 +92,7 @@ class StaticConstantAccess
                 }
             }
         } else {
-            if ($className == 'self' || $className == 'this') {
+            if (in_array($className, array('self', 'static', 'this'))) {
                 $classDefinition = $compilationContext->classDefinition;
             } else {
                 if ($className == 'parent') {
@@ -137,14 +137,14 @@ class StaticConstantAccess
             /**
              * Variable that receives property accesses must be polimorphic
              */
-            if ($symbolVariable->getType() != 'variable') {
+            if (!$symbolVariable->isVariable()) {
                 throw new CompilerException("Cannot use variable: " . $symbolVariable->getType() . " to assign class constants", $expression);
             }
 
             $symbolVariable->setDynamicTypes('undefined');
 
             $compilationContext->headersManager->add('kernel/object');
-            $compilationContext->codePrinter->output('zephir_get_class_constant(' . $symbolVariable->getName() . ', ' . $classDefinition->getClassEntry() . ', SS("' . $constant . '") TSRMLS_CC);');
+            $compilationContext->codePrinter->output('zephir_get_class_constant(' . $symbolVariable->getName() . ', ' . $classDefinition->getClassEntry($compilationContext) . ', SS("' . $constant . '") TSRMLS_CC);');
             return new CompiledExpression('variable', $symbolVariable->getRealName(), $expression);
         }
 

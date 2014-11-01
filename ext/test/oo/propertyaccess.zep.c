@@ -35,7 +35,7 @@ ZEPHIR_INIT_CLASS(Test_Oo_PropertyAccess) {
 PHP_METHOD(Test_Oo_PropertyAccess, __construct) {
 
 	zval *_0, *_6;
-	zval *test, *test1, *_1, *_2, *_3, *_4, *_5, *_7, *_8 = NULL, *_9;
+	zval *test, *test1, *_1 = NULL, *_2, *_3, *_4, *_5, *_7, *_8 = NULL, *_9;
 
 	ZEPHIR_MM_GROW();
 
@@ -46,41 +46,41 @@ PHP_METHOD(Test_Oo_PropertyAccess, __construct) {
 	ZEPHIR_INIT_VAR(_1);
 	ZVAL_LONG(_1, 1);
 	zephir_array_fast_append(_0, _1);
-	ZEPHIR_INIT_BNVAR(_1);
+	ZEPHIR_INIT_NVAR(_1);
 	ZVAL_LONG(_1, 2);
 	zephir_array_fast_append(_0, _1);
-	ZEPHIR_INIT_BNVAR(_1);
+	ZEPHIR_INIT_NVAR(_1);
 	ZVAL_LONG(_1, 3);
 	zephir_array_fast_append(_0, _1);
-	ZEPHIR_INIT_BNVAR(_1);
+	ZEPHIR_INIT_NVAR(_1);
 	ZVAL_LONG(_1, 5);
 	zephir_array_fast_append(_0, _1);
-	ZEPHIR_INIT_BNVAR(_1);
+	ZEPHIR_INIT_NVAR(_1);
 	ZVAL_DOUBLE(_1, 6.00);
 	zephir_array_fast_append(_0, _1);
 	zephir_update_property_zval(test, SL("test"), _0 TSRMLS_CC);
 	ZEPHIR_OBS_VAR(_2);
 	zephir_read_property(&_2, test, SL("test"), PH_NOISY_CC);
-	zephir_array_fetch_long(&_3, _2, 0, PH_NOISY | PH_READONLY TSRMLS_CC);
+	zephir_array_fetch_long(&_3, _2, 0, PH_NOISY | PH_READONLY, "test/oo/propertyaccess.zep", 19 TSRMLS_CC);
 	zephir_update_property_zval(test, SL("test2"), _3 TSRMLS_CC);
 	ZEPHIR_OBS_VAR(_4);
 	zephir_read_property(&_4, test, SL("test"), PH_NOISY_CC);
-	zephir_array_fetch_long(&_5, _4, 1, PH_NOISY | PH_READONLY TSRMLS_CC);
+	zephir_array_fetch_long(&_5, _4, 1, PH_NOISY | PH_READONLY, "test/oo/propertyaccess.zep", 20 TSRMLS_CC);
 	zephir_update_property_zval(test, SL("test3"), _5 TSRMLS_CC);
 	ZEPHIR_INIT_VAR(_6);
 	array_init_size(_6, 7);
 	ZEPHIR_OBS_VAR(_7);
 	zephir_read_property(&_7, test, SL("test"), PH_NOISY_CC);
 	ZEPHIR_OBS_VAR(_8);
-	zephir_array_fetch_long(&_8, _7, 1, PH_NOISY TSRMLS_CC);
+	zephir_array_fetch_long(&_8, _7, 1, PH_NOISY, "test/oo/propertyaccess.zep", 21 TSRMLS_CC);
 	zephir_array_fast_append(_6, _8);
-	ZEPHIR_INIT_BNVAR(_1);
+	ZEPHIR_INIT_NVAR(_1);
 	ZVAL_LONG(_1, 1);
 	zephir_array_fast_append(_6, _1);
-	ZEPHIR_INIT_BNVAR(_1);
+	ZEPHIR_INIT_NVAR(_1);
 	ZVAL_LONG(_1, 2);
 	zephir_array_fast_append(_6, _1);
-	ZEPHIR_INIT_BNVAR(_1);
+	ZEPHIR_INIT_NVAR(_1);
 	ZVAL_LONG(_1, 3);
 	zephir_array_fast_append(_6, _1);
 	zephir_update_property_zval(test, SL("test3"), _6 TSRMLS_CC);

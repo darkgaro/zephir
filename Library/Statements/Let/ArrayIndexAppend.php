@@ -67,7 +67,7 @@ class ArrayIndexAppend extends ArrayIndex
                 case 'variable':
                     break;
                 default:
-                    throw new CompilerException("Index: " . $exprIndex->getType() . " cannot be used as array index in assigment without cast", $indexExpr);
+                    throw new CompilerException("Index: " . $exprIndex->getType() . " cannot be used as array index in assignment without cast", $indexExpr);
             }
 
             $offsetExprs[] = $exprIndex;
@@ -166,7 +166,7 @@ class ArrayIndexAppend extends ArrayIndex
         /**
          * Only dynamic variables can be used as arrays
          */
-        if ($symbolVariable->getType() != 'variable') {
+        if (!$symbolVariable->isVariable()) {
             throw new CompilerException("Cannot use variable type: '" . $symbolVariable->getType() . "' as array", $statement);
         }
 

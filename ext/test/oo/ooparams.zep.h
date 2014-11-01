@@ -25,6 +25,7 @@ PHP_METHOD(Test_Oo_OoParams, setConstAverage);
 PHP_METHOD(Test_Oo_OoParams, setObject);
 PHP_METHOD(Test_Oo_OoParams, setCallable);
 PHP_METHOD(Test_Oo_OoParams, setResource);
+PHP_METHOD(Test_Oo_OoParams, setObjectClassCast);
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setage, 0, 0, 1)
 	ZEND_ARG_INFO(0, age)
@@ -43,7 +44,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setenabled, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setlist, 0, 0, 1)
-	ZEND_ARG_INFO(0, someList)
+	ZEND_ARG_ARRAY_INFO(0, someList, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setstrictage, 0, 0, 1)
@@ -63,7 +64,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setstrictenabled, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setstrictlist, 0, 0, 1)
-	ZEND_ARG_INFO(0, someList)
+	ZEND_ARG_ARRAY_INFO(0, someList, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setagedefault, 0, 0, 0)
@@ -83,7 +84,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setenableddefault, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setlistdefault, 0, 0, 0)
-	ZEND_ARG_INFO(0, someList)
+	ZEND_ARG_ARRAY_INFO(0, someList, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setconstage, 0, 0, 1)
@@ -104,6 +105,10 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setresource, 0, 0, 1)
 	ZEND_ARG_INFO(0, obj)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_test_oo_ooparams_setobjectclasscast, 0, 0, 1)
+	ZEND_ARG_OBJ_INFO(0, parameter, Test\\Oo\\Param, 0)
 ZEND_END_ARG_INFO()
 
 ZEPHIR_INIT_FUNCS(test_oo_ooparams_method_entry) {
@@ -129,5 +134,6 @@ ZEPHIR_INIT_FUNCS(test_oo_ooparams_method_entry) {
 	PHP_ME(Test_Oo_OoParams, setObject, arginfo_test_oo_ooparams_setobject, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Oo_OoParams, setCallable, arginfo_test_oo_ooparams_setcallable, ZEND_ACC_PUBLIC)
 	PHP_ME(Test_Oo_OoParams, setResource, arginfo_test_oo_ooparams_setresource, ZEND_ACC_PUBLIC)
+	PHP_ME(Test_Oo_OoParams, setObjectClassCast, arginfo_test_oo_ooparams_setobjectclasscast, ZEND_ACC_PUBLIC)
   PHP_FE_END
 };

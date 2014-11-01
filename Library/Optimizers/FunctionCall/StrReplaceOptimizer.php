@@ -46,7 +46,7 @@ class StrReplaceOptimizer extends OptimizerAbstract
         }
 
         if (count($expression['parameters']) != 3) {
-            throw new CompilerException("'str_replace' only accepts three parameter");
+            throw new CompilerException("'str_replace' only accepts three parameter", $expression);
         }
 
         /**
@@ -54,7 +54,7 @@ class StrReplaceOptimizer extends OptimizerAbstract
          */
         $call->processExpectedReturn($context);
 
-        $symbolVariable = $call->getSymbolVariable();
+        $symbolVariable = $call->getSymbolVariable(true, $context);
         if ($symbolVariable->isNotVariableAndString()) {
             throw new CompilerException("Returned values by functions can only be assigned to variant variables", $expression);
         }
@@ -68,7 +68,7 @@ class StrReplaceOptimizer extends OptimizerAbstract
         $symbolVariable->setDynamicTypes('string');
 
         $resolvedParams = $call->getReadOnlyResolvedParams($expression['parameters'], $context, $expression);
-        $context->codePrinter->output('zephir_fast_str_replace(' . $symbolVariable->getName() . ', ' . $resolvedParams[0] . ', ' . $resolvedParams[1] . ', ' . $resolvedParams[2] . ');');
+        $context->codePrinter->output('zephir_fast_str_replace(' . $symbolVariable->getName() . ', ' . $resolvedParams[0] . ', ' . $resolvedParams[1] . ', ' . $resolvedParams[2] . ' TSRMLS_CC);');
         return new CompiledExpression('variable', $symbolVariable->getRealName(), $expression);
     }
 }

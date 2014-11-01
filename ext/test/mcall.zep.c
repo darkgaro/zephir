@@ -17,6 +17,7 @@
 #include "kernel/fcall.h"
 #include "ext/spl/spl_exceptions.h"
 #include "kernel/exception.h"
+#include "kernel/object.h"
 
 
 /**
@@ -488,8 +489,8 @@ PHP_METHOD(Test_Mcall, optionalRequereString) {
 		RETURN_MM_NULL();
 	}
 
-	if (unlikely(Z_TYPE_P(param_param) == IS_STRING)) {
-		param = param_param;
+	if (likely(Z_TYPE_P(param_param) == IS_STRING)) {
+		zephir_get_strval(param, param_param);
 	} else {
 		ZEPHIR_INIT_VAR(param);
 		ZVAL_EMPTY_STRING(param);
@@ -569,7 +570,8 @@ PHP_METHOD(Test_Mcall, optionalParameterVar) {
 	}
 
 
-	RETURN_CCTORW(param);
+	RETVAL_ZVAL(param, 1, 0);
+	return;
 
 }
 
@@ -675,6 +677,75 @@ PHP_METHOD(Test_Mcall, arrayParamWithDefaultEmptyArray) {
 
 
 	RETURN_CTOR(driverOptions);
+
+}
+
+PHP_METHOD(Test_Mcall, arrayParamWithDefaultNullValue) {
+
+	zval *driverOptions_param = NULL;
+	zval *driverOptions = NULL;
+
+	ZEPHIR_MM_GROW();
+	zephir_fetch_params(1, 0, 1, &driverOptions_param);
+
+	if (!driverOptions_param) {
+	ZEPHIR_INIT_VAR(driverOptions);
+	array_init(driverOptions);
+	} else {
+		zephir_get_arrval(driverOptions, driverOptions_param);
+	}
+
+
+	RETURN_CTOR(driverOptions);
+
+}
+
+PHP_METHOD(Test_Mcall, arrayParam) {
+
+	zval *driverOptions_param = NULL;
+	zval *driverOptions = NULL;
+
+	ZEPHIR_MM_GROW();
+	zephir_fetch_params(1, 1, 0, &driverOptions_param);
+
+	zephir_get_arrval(driverOptions, driverOptions_param);
+
+
+	RETURN_CTOR(driverOptions);
+
+}
+
+PHP_METHOD(Test_Mcall, objectParamCastStdClass) {
+
+	zval *param;
+
+	zephir_fetch_params(0, 1, 0, &param);
+
+
+
+	if (!(zephir_instance_of_ev(param, zend_standard_class_def TSRMLS_CC))) {
+		ZEPHIR_THROW_EXCEPTION_DEBUG_STRW(spl_ce_InvalidArgumentException, "Parameter 'param' must be an instance of 'StdClass'", "", 0);
+		return;
+	}
+	RETVAL_ZVAL(param, 1, 0);
+	return;
+
+}
+
+PHP_METHOD(Test_Mcall, objectParamCastOoParam) {
+
+	zval *param;
+
+	zephir_fetch_params(0, 1, 0, &param);
+
+
+
+	if (!(zephir_instance_of_ev(param, test_oo_param_ce TSRMLS_CC))) {
+		ZEPHIR_THROW_EXCEPTION_DEBUG_STRW(spl_ce_InvalidArgumentException, "Parameter 'param' must be an instance of 'Test\\\\Oo\\\\Param'", "", 0);
+		return;
+	}
+	RETVAL_ZVAL(param, 1, 0);
+	return;
 
 }
 

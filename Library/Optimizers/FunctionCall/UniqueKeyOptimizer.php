@@ -46,7 +46,7 @@ class UniqueKeyOptimizer extends OptimizerAbstract
         }
 
         if (count($expression['parameters']) != 2) {
-            throw new CompilerException("'unique_key' only accepts three parameter");
+            throw new CompilerException("'unique_key' only accepts three parameter", $expression);
         }
 
         /**
@@ -54,7 +54,7 @@ class UniqueKeyOptimizer extends OptimizerAbstract
          */
         $call->processExpectedReturn($context);
 
-        $symbolVariable = $call->getSymbolVariable();
+        $symbolVariable = $call->getSymbolVariable(true, $context);
         if ($symbolVariable->isNotVariableAndString()) {
             throw new CompilerException("Returned values by functions can only be assigned to variant variables", $expression);
         }
